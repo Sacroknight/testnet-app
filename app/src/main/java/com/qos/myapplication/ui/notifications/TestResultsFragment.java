@@ -1,42 +1,38 @@
 package com.qos.myapplication.ui.notifications;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.location.Location;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.google.android.gms.location.LocationResult;
+import com.qos.myapplication.tests.PingJitterStats;
 import com.qos.myapplication.databinding.FragmentTestResultsBinding;
-import static com.qos.myapplication.tests.DeviceInformation.*;
 
 import com.qos.myapplication.tests.DeviceInformation;
-import com.qos.myapplication.tests.PermissionCallback;
 
-import java.util.Objects;
+public class TestResultsFragment extends Fragment{
 
-public class TestResultsFragment extends Fragment implements PermissionCallback {
+    private static FragmentTestResultsBinding binding;
+    private static DeviceInformation deviceInformation;
+    private static PingJitterStats pingJitterStats;
+    static String chosenHost;
 
-    private FragmentTestResultsBinding binding;
-    private DeviceInformation deviceInformation;
 
-        public View onCreateView(@NonNull LayoutInflater inflater,
+    public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         TestResultsViewModel testResultsViewModel =
                 new ViewModelProvider(this).get(TestResultsViewModel.class);
+        pingJitterStats = new PingJitterStats();
+        chosenHost = pingJitterStats.chooseHost();
 
         binding = FragmentTestResultsBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
         // Se obtiene la información del dispositivo desde los argumentos del fragmento
-        Bundle args = getArguments();
+       /* Bundle args = getArguments();
         if(args != null && args.containsKey("device_info")){
             deviceInformation = (DeviceInformation) args.getSerializable("device_info");
         }
@@ -47,8 +43,8 @@ public class TestResultsFragment extends Fragment implements PermissionCallback 
             updateDeviceInfoText();
         }else{
             deviceInformation.requestLocationPermission(REQUEST_LOCATION_PERMISSION);
-        }
-            return root;
+        }*/
+          return root;
         }
 
     @Override
@@ -57,7 +53,7 @@ public class TestResultsFragment extends Fragment implements PermissionCallback 
         binding = null;
     }
 
-    @Override
+    /*@Override
     public void onPermissionGranted() {
         updateDeviceInfoText();
     }
@@ -69,26 +65,53 @@ public class TestResultsFragment extends Fragment implements PermissionCallback 
     private boolean hasLocationPermissions() {
         return ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }*/
+
+   /* private static class PingJitterTask extends AsyncTask<Void, Void, Void> {
+        private final PingJitterStats pingJitterStats;
+        private final String chosenHost;
+
+        public PingJitterTask(PingJitterStats pingJitterStats, String chosenHost) {
+            this.pingJitterStats = pingJitterStats;
+            this.chosenHost = chosenHost;
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            pingJitterStats.measuringPingJitter(chosenHost);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            // Update UI after ping and jitter measurements are done
+            updateDeviceInfoText();
+        }
     }
+*/
 
-    private void updateDeviceInfoText() {
+    /*private static void updateDeviceInfoText() {
 
-            deviceInformation.retrieveSignalStrength(); // Use callback for updates
-            deviceInformation.retrieveLocation();
-            // Wait for location update
+        deviceInformation.retrieveSignalStrength(); // Use callback for updates
+        deviceInformation.retrieveLocation();
+        new PingJitterTask(pingJitterStats, chosenHost).execute();
+
+        // Wait for location update
             if (deviceInformation != null) {
-
+               // pingJitterStats.measuringPingJitter(chosenHost); // Start background task
                 new Handler().postDelayed(() -> {
                     // Update text based on device information
                     String deviceInfoText = "Marca: " + deviceInformation.getManufacturer() +
                             "\nModelo: " + deviceInformation.getModel() +
                             "\nVersión de Android: " + deviceInformation.getAndroidVersion() +
                             "\nIntensidad de señal: " + deviceInformation.getSignalStrength() +
-                            "\nUbicación: " + deviceInformation.getLocation();
+                            "\nUbicación: " + deviceInformation.getLocation() +
+                            "\nPing: " + pingJitterStats.getPingMeasure() +
+                            "\nJitter: " + pingJitterStats.getJitterMeasure();
                     Objects.requireNonNull(binding.textNotifications).setText(deviceInfoText);
-                }, 1000); // Wait for 1 second before updating text
+                }, (1000)); // Wait for 1 second before updating text
             }else {
                 binding.textNotifications.setText("No se pudo obtener la información del dispositivo.");
             }
-        }
+        }*/
     }
