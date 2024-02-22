@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -49,13 +50,14 @@ public class HomeFragment extends Fragment {
         View root = binding.getRoot();
 
         Button start_Button = binding.startButton;
+        ProgressBar progressBar = binding.testProgressIndicator;
 
         final TextView textView = binding.deviceInformation;
         final TextView device_Info = binding.deviceInformation;
         start_Button.setOnClickListener(view -> {
-            homeViewModel.startPingJitterMeasurement(start_Button);
+            homeViewModel.startPingJitterMeasurement(start_Button,progressBar);
             deviceInformation.updateDeviceLocationAndSignal(sharedPreferences.getBoolean("dontAskAgain", false)
-                    ,sharedPreferences.getBoolean("dontAskAngainDenied",false));
+                    ,sharedPreferences.getBoolean("dontAskAgainDenied",false));
             start_Button.setEnabled(false);
         });
         homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
@@ -72,7 +74,7 @@ public class HomeFragment extends Fragment {
 //            DeviceInformation deviceInformation = new DeviceInformation(requireContext());
 //            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 //                // Permission granted, update location
-//                deviceInformation.retrieveLocation(sharedPreferences.getBoolean("dontAskAngainDenied",false));
+//                deviceInformation.retrieveLocation(sharedPreferences.getBoolean("dontAskAgainDenied",false));
 //            } else {
 //                // Permission denied
 //                deviceInformation.setLocation(String.valueOf(deviceInformation.DENIED_PERMISSIONS));
@@ -82,6 +84,7 @@ public class HomeFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        binding.testProgressIndicator.setProgress(0);
         super.onDestroyView();
         binding = null;
     }

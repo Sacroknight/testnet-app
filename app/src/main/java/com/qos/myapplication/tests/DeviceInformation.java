@@ -98,16 +98,16 @@ public class DeviceInformation {
         return location;
     }
 
-    private void setCarrier(String carrier) {
-        this.carrier = carrier;
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public String getCarrier() {
         return carrier;
     }
 
-    public void setLocation(String location) {
-        this.location = location;
+    private void setCarrier(String carrier) {
+        this.carrier = carrier;
     }
 
     public void updateDeviceLocationAndSignal(boolean dontAskAgain, boolean dontAskAgainDenied) {
@@ -209,7 +209,7 @@ public class DeviceInformation {
                 actualLocation -> {
                     double latitude = actualLocation.getLatitude();
                     double longitude = actualLocation.getLongitude();
-//                        // Update the location
+                    // Update the location
                     setLocation(latitude + ", " + longitude);
                 }, context.getMainLooper());
     }

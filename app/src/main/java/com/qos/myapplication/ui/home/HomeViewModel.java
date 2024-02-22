@@ -2,6 +2,7 @@ package com.qos.myapplication.ui.home;
 
 import android.os.AsyncTask;
 import android.widget.Button;
+import android.widget.ProgressBar;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -32,38 +33,42 @@ public class HomeViewModel implements ViewModelProvider.Factory {
     public LiveData<String> getText() {
         return mText;
     }
+
     public LiveData<String> getDeviceInfo() {
         return dText;
     }
 
-    public void startPingJitterMeasurement(Button button) {
+    public void startPingJitterMeasurement(Button button, ProgressBar progressBar) {
         chosenHost = pingJitterStats.chooseHost();
         button.setEnabled(false);
-        new PingJitterTask(pingJitterStats, chosenHost, button).execute();
+        new PingJitterTask(pingJitterStats, chosenHost, button, progressBar).execute();
     }
 
 
-    public String getDeviceInfoText(){
+    public String getDeviceInfoText() {
 
         return "Manufacturer: " + deviceInformation.getManufacturer() +
                 "\nModel: " + deviceInformation.getModel() +
                 "\nAndroid Version: " + deviceInformation.getAndroidVersion() +
                 "\nActual Location: " + deviceInformation.getLocation() +
-                "\nSignal Strenght: " + deviceInformation.getCarrier() +" "+ deviceInformation.getSignalStrength() +" dBm" +
+                "\nSignal Strenght: " + deviceInformation.getCarrier() + " " + deviceInformation.getSignalStrength() + " dBm" +
                 "\nCurrent Host: " + chosenHost +
                 "\nPing: " + pingJitterStats.getPingMeasure() +
                 "\nJitter: " + pingJitterStats.getJitterMeasure();
     }
+
     private class PingJitterTask extends AsyncTask<Void, Integer, Void> {
 
         private final PingJitterStats pingJitterStats;
         private final String chosenHost;
         private final Button button;
+        private final ProgressBar progressBar;
 
-        public PingJitterTask(PingJitterStats pingJitterStats, String chosenHost, Button button) {
+        public PingJitterTask(PingJitterStats pingJitterStats, String chosenHost, Button button, ProgressBar progressBar) {
             this.pingJitterStats = pingJitterStats;
             this.chosenHost = chosenHost;
             this.button = button;
+            this.progressBar = progressBar;
         }
 
         @Override
@@ -74,6 +79,7 @@ public class HomeViewModel implements ViewModelProvider.Factory {
 
         @Override
         protected void onPostExecute(Void aVoid) {
+            progressBar.setProgress(0);
             getDeviceInfoText();
             dText.setValue(getDeviceInfoText());
             button.setEnabled(true);

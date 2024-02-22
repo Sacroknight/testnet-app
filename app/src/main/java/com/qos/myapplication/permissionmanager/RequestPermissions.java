@@ -13,42 +13,47 @@ import androidx.core.content.ContextCompat;
 
 import com.qos.myapplication.R;
 
-public class RequestPermissions{
-    private final Context context;
+public class RequestPermissions {
     public final int REQUEST_LOCATION_PERMISSION = 0001;
+    private final Context context;
     private final int REQUEST_READ_PHONE_PERMISSION = 0010;
 
 
-    public RequestPermissions(Context context){
+    public RequestPermissions(Context context) {
         this.context = context;
     }
-    public boolean hasLocationPermissions(){
+
+    public boolean hasLocationPermissions() {
         return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
-    public boolean hasReadPhonePermissions(){
+
+    public boolean hasReadPhonePermissions() {
         boolean result;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             result = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED ||
                     ContextCompat.checkSelfPermission(context, Manifest.permission.READ_BASIC_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
-        }else{
+        } else {
             result = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
         }
         return result;
     }
-    public boolean hasAllNecessaryPermissions(){
+
+    public boolean hasAllNecessaryPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return  hasLocationPermissions() && hasReadPhonePermissions();
-        }else{
+            return hasLocationPermissions() && hasReadPhonePermissions();
+        } else {
             return hasLocationPermissions() &&
                     ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
         }
     }
-    private void requestLocationPermissions(int requestCode){
+
+    private void requestLocationPermissions(int requestCode) {
         ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION}, requestCode);
     }
-    public void requestLocationPermissionsDialog(){
+
+    public void requestLocationPermissionsDialog() {
         String[] toppings = {context.getString(R.string.dont_Ask_Again)};
         boolean[] checkedItems = {false};
         new AlertDialog.Builder(context).setTitle(context.getString(R.string.request_Location))
@@ -66,16 +71,17 @@ public class RequestPermissions{
                 setNegativeButton(context.getString(R.string.continue_Without_Permission), (dialog, which) -> dialog.dismiss()).
                 show();
     }
-    private void requestReadPhonePermissions(int requestCode){
+
+    private void requestReadPhonePermissions(int requestCode) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.READ_PHONE_STATE,
                     Manifest.permission.READ_BASIC_PHONE_STATE}, requestCode);
-        }else {
+        } else {
             ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.READ_PHONE_STATE}, requestCode);
         }
     }
 
-    private void requestReadPhonePermissionsDialog(int requestCode){
+    private void requestReadPhonePermissionsDialog(int requestCode) {
         String[] toppings = {context.getString(R.string.dont_Ask_Again)};
         boolean[] checkedItems = {false};
         new AlertDialog.Builder(context).setTitle(context.getString(R.string.request_Phone_Permission))
@@ -93,21 +99,24 @@ public class RequestPermissions{
                 .setNegativeButton(context.getString(R.string.continue_Without_Permission), (dialog, which) -> dialog.dismiss()).
                 show();
     }
-    private void requestAllPermissions(){
+
+    private void requestAllPermissions() {
         new AlertDialog.Builder(context).setTitle(context.getString(R.string.permissions_Needed))
                 .setMessage(context.getString(R.string.permissions_Needed_Dialog))
-                .setPositiveButton(context.getString(R.string.grant_Permission), (dialog, which) ->{
+                .setPositiveButton(context.getString(R.string.grant_Permission), (dialog, which) -> {
                     requestLocationPermissions(REQUEST_LOCATION_PERMISSION);
                     requestReadPhonePermissions(REQUEST_LOCATION_PERMISSION);
-                    })
+                })
                 .setNegativeButton(context.getString(R.string.continue_Without_Permission), (dialog, which) -> dialog.dismiss()).
                 show();
     }
-    public void checkAndRequestPermission(){
-        if(!hasAllNecessaryPermissions()){
+
+    public void checkAndRequestPermission() {
+        if (!hasAllNecessaryPermissions()) {
             requestAllPermissions();
         }
     }
+
     public void showPermissionDeniedWarning() {
         String[] toppings = {context.getString(R.string.dont_Ask_Again)};
         boolean[] checkedItems = {false};
@@ -126,12 +135,12 @@ public class RequestPermissions{
                 .setPositiveButton("Continue", (dialog, which) -> dialog.dismiss())
                 .setNegativeButton("Grant Permissions", ((dialog, which) -> {
                     dialog.dismiss();
-                    if(!hasAllNecessaryPermissions()){
-                    requestLocationPermissions(REQUEST_LOCATION_PERMISSION);
-                    requestReadPhonePermissions(REQUEST_READ_PHONE_PERMISSION);
-                    }else if(!hasLocationPermissions()){
+                    if (!hasAllNecessaryPermissions()) {
                         requestLocationPermissions(REQUEST_LOCATION_PERMISSION);
-                    }else if(!hasReadPhonePermissions()){
+                        requestReadPhonePermissions(REQUEST_READ_PHONE_PERMISSION);
+                    } else if (!hasLocationPermissions()) {
+                        requestLocationPermissions(REQUEST_LOCATION_PERMISSION);
+                    } else if (!hasReadPhonePermissions()) {
                         requestReadPhonePermissions(REQUEST_READ_PHONE_PERMISSION);
                     }
                 }))// Optionally, close app if user wants

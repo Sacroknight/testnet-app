@@ -25,6 +25,7 @@ public class TestResultsFragment extends Fragment{
         View root = binding.getRoot();
 
         final TextView textView = binding.textNotifications;
+        testResultsViewModel.getText().observe(getViewLifecycleOwner(),textView::setText);
           return root;
         }
 

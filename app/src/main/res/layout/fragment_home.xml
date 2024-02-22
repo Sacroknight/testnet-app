@@ -54,12 +54,14 @@
             android:id="@+id/test_progress_indicator"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:indicatorSize="256dp"
+            app:indicatorSize="256sp"
             app:trackThickness="32dp"
             android:max="100"
-            android:min="0"
+            android:min="30"
             android:layout_gravity="center"
-            />
+            app:trackColor="#390091EA"
+            app:trackCornerRadius="@dimen/activity_vertical_margin"
+             />
     </FrameLayout>
 
     <Button

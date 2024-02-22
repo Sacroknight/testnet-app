@@ -16,20 +16,23 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-
 public class PingJitterStats {
-    private static final int TIMEOUT_MS = 5000;
     public static final int MAX_PING_TIMES = 20;
+    private static final int TIMEOUT_MS = 5000;
     private static final int ERROR_MEASURING_PING = -1;
     private final FragmentHomeBinding binding;
     private final Handler handler;
 
     Map<String, Integer> host;
+    AtomicInteger progress = new AtomicInteger(0);
     private int pingMeasure;
     private int jitterMeasure;
 
-
-    AtomicInteger progress = new AtomicInteger(0);
+    public PingJitterStats(FragmentHomeBinding fragmentHomeBinding, Handler handler) {
+        this.binding = fragmentHomeBinding;
+        this.handler = handler;
+        getMostVisitedWebsites();
+    }
 
     public int getPingMeasure() {
         return pingMeasure;
@@ -45,12 +48,6 @@ public class PingJitterStats {
 
     private void setJitterMeasure(int jitterMeasure) {
         this.jitterMeasure = jitterMeasure;
-    }
-
-    public PingJitterStats(FragmentHomeBinding fragmentHomeBinding, Handler handler) {
-        this.binding = fragmentHomeBinding;
-        this.handler = handler;
-        getMostVisitedWebsites();
     }
 
     private void getMostVisitedWebsites() {
@@ -98,7 +95,7 @@ public class PingJitterStats {
 
     private int measuringPing(String chosenHost) {
         int probes = 0;
-        int ping=0;
+        int ping = 0;
         if (chosenHost == null || chosenHost.isEmpty()) {
             ping = ERROR_MEASURING_PING;
         }
