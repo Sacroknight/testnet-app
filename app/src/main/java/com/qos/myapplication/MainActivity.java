@@ -19,15 +19,16 @@ import com.qos.myapplication.tests.DeviceInformation;
 public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
-    private DeviceInformation deviceInformation;
     private RequestPermissions requestPermissions;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         requestPermissions = new RequestPermissions(this);
         SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
         boolean permissionsRequested = sharedPreferences.getBoolean("permissionsRequested", false);
+
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         if(!permissionsRequested){

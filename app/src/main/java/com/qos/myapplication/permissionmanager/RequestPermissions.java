@@ -17,7 +17,6 @@ public class RequestPermissions{
     private final Context context;
     public final int REQUEST_LOCATION_PERMISSION = 0001;
     private final int REQUEST_READ_PHONE_PERMISSION = 0010;
-    public final int REQUEST_ALL_PERMISSION = 0011;
 
 
     public RequestPermissions(Context context){
@@ -49,7 +48,7 @@ public class RequestPermissions{
         ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION}, requestCode);
     }
-    private void requestLocationPermissionsDialog(){
+    public void requestLocationPermissionsDialog(){
         String[] toppings = {context.getString(R.string.dont_Ask_Again)};
         boolean[] checkedItems = {false};
         new AlertDialog.Builder(context).setTitle(context.getString(R.string.request_Location))
@@ -62,9 +61,9 @@ public class RequestPermissions{
                         editor.apply();
                     }
                 })
-                .setPositiveButton(context.getString(R.string.grant_Permission), (dialog, which) ->{
-                    requestLocationPermissions(REQUEST_LOCATION_PERMISSION);
-                }).setNegativeButton(context.getString(R.string.continue_Without_Permission), (dialog, which) -> dialog.dismiss()).
+                .setPositiveButton(context.getString(R.string.grant_Permission), (dialog, which) ->
+                        requestLocationPermissions(REQUEST_LOCATION_PERMISSION)).
+                setNegativeButton(context.getString(R.string.continue_Without_Permission), (dialog, which) -> dialog.dismiss()).
                 show();
     }
     private void requestReadPhonePermissions(int requestCode){
@@ -89,8 +88,8 @@ public class RequestPermissions{
                         editor.apply();
                     }
                 })
-                .setPositiveButton(context.getString(R.string.grant_Permission), (dialog, which) ->{
-                    requestReadPhonePermissions(REQUEST_READ_PHONE_PERMISSION);})
+                .setPositiveButton(context.getString(R.string.grant_Permission), (dialog, which) ->
+                        requestReadPhonePermissions(REQUEST_READ_PHONE_PERMISSION))
                 .setNegativeButton(context.getString(R.string.continue_Without_Permission), (dialog, which) -> dialog.dismiss()).
                 show();
     }

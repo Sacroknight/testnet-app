@@ -1,29 +1,50 @@
 package com.qos.myapplication.ui.home;
 
+import android.os.AsyncTask;
+import android.widget.Button;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.qos.myapplication.tests.DeviceInformation;
 import com.qos.myapplication.tests.PingJitterStats;
 
-public class HomeViewModel extends ViewModel {
+public class HomeViewModel implements ViewModelProvider.Factory {
 
     private final MutableLiveData<String> mText;
+    private final MutableLiveData<String> dText;
     private final DeviceInformation deviceInformation;
     private final PingJitterStats pingJitterStats;
+    private String chosenHost;
 
     public HomeViewModel(DeviceInformation deviceInformation, PingJitterStats pingJitterStats) {
+
         this.deviceInformation = deviceInformation;
         this.pingJitterStats = pingJitterStats;
         mText = new MutableLiveData<>();
+        dText = new MutableLiveData<>();
         mText.setValue("This is home fragment");
+
     }
+
 
     public LiveData<String> getText() {
         return mText;
     }
-    public String getDeviceInfoText(String chosenHost){
+    public LiveData<String> getDeviceInfo() {
+        return dText;
+    }
+
+    public void startPingJitterMeasurement(Button button) {
+        chosenHost = pingJitterStats.chooseHost();
+        button.setEnabled(false);
+        new PingJitterTask(pingJitterStats, chosenHost, button).execute();
+    }
+
+
+    public String getDeviceInfoText(){
+
         return "Manufacturer: " + deviceInformation.getManufacturer() +
                 "\nModel: " + deviceInformation.getModel() +
                 "\nAndroid Version: " + deviceInformation.getAndroidVersion() +
@@ -32,5 +53,30 @@ public class HomeViewModel extends ViewModel {
                 "\nCurrent Host: " + chosenHost +
                 "\nPing: " + pingJitterStats.getPingMeasure() +
                 "\nJitter: " + pingJitterStats.getJitterMeasure();
+    }
+    private class PingJitterTask extends AsyncTask<Void, Integer, Void> {
+
+        private final PingJitterStats pingJitterStats;
+        private final String chosenHost;
+        private final Button button;
+
+        public PingJitterTask(PingJitterStats pingJitterStats, String chosenHost, Button button) {
+            this.pingJitterStats = pingJitterStats;
+            this.chosenHost = chosenHost;
+            this.button = button;
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            pingJitterStats.measuringPingJitter(chosenHost);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            getDeviceInfoText();
+            dText.setValue(getDeviceInfoText());
+            button.setEnabled(true);
+        }
     }
 }
