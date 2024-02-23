@@ -56,9 +56,9 @@ public class HomeFragment extends Fragment {
         final TextView device_Info = binding.deviceInformation;
 
         start_Button.setOnClickListener(view -> {
-            homeViewModel.startPingJitterMeasurement(start_Button,progressBar);
             deviceInformation.updateDeviceLocationAndSignal(sharedPreferences.getBoolean("dontAskAgain", false)
                     ,sharedPreferences.getBoolean("dontAskAgainDenied",false));
+            homeViewModel.startPingJitterMeasurement(start_Button,progressBar);
             start_Button.setEnabled(false);
         });
         homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);

@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class PingJitterStats {
-    public static final int MAX_PING_TIMES = 20;
+    public static final int MAX_PING_TIMES = 40;
     private static final int TIMEOUT_MS = 5000;
     private static final int ERROR_MEASURING_PING = -1;
     private final FragmentHomeBinding binding;

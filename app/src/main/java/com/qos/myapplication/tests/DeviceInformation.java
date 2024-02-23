@@ -16,7 +16,6 @@ import android.content.Context;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoCdma;
@@ -34,6 +33,7 @@ import android.telephony.TelephonyManager;
 import com.qos.myapplication.permissionmanager.RequestPermissions;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class DeviceInformation {
     private static final int NOT_ACTIVE_MOBILE_NETWORK = -1;
@@ -111,11 +111,6 @@ public class DeviceInformation {
         this.carrier = carrier;
     }
 
-    public void updateDeviceLocationAndSignal(boolean dontAskAgain, boolean dontAskAgainDenied) {
-        retrieveLocation(dontAskAgain);
-        retrieveSignalStrength(dontAskAgainDenied, dontAskAgain);
-    }
-
     public void retrieveSignalStrength(boolean requested, boolean request) {
 
         if (requestPermissions.hasAllNecessaryPermissions()) {
@@ -186,39 +181,29 @@ public class DeviceInformation {
         setSignalStrength(currentStrength);
     }
 
-    public void retrieveLocation(boolean requested) {
-        if (requestPermissions.hasLocationPermissions()) {
-            new LocationManagerTask(requested).execute();
-        } else {
-            setLocation(LOCATION_NOT_FOUND);
-        }
-    }
-
-    private class LocationManagerTask extends AsyncTask<Void, Void, LocationManager> {
-
-        @Override
-        protected LocationManager doInBackground(Void... voids) {
-            return (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-        }
-
-        private final boolean requested;
-
-        public LocationManagerTask(boolean requested) {
-            this.requested = requested;
-        }
-
-        @Override
-        protected void onPostExecute(LocationManager locationManager) {
+    public void updateDeviceLocationAndSignal(boolean dontAskAgain, boolean dontAskAgainDenied) {
+        CompletableFuture<LocationManager> locationManagerFuture = CompletableFuture.supplyAsync(() ->
+                (LocationManager) context.getSystemService(Context.LOCATION_SERVICE));
+        if(requestPermissions.hasLocationPermissions()){
+        locationManagerFuture.thenAccept(locationManager -> {
             if (locationManager != null) {
                 gettingLocation(locationManager);
-            } else if (!requestPermissions.hasLocationPermissions()) {
-                if (!requested) {
-                    requestPermissions.showPermissionDeniedWarning();
-                } else {
-                    setLocation(String.valueOf(DENIED_PERMISSIONS));
                 }
             }
+        ).exceptionally(e -> {
+            setLocation(LOCATION_NOT_FOUND);
+            return null;
+        });
+        }else{
+            if (!dontAskAgain) {
+                requestPermissions.showPermissionDeniedWarning();
+            } else {
+                setLocation(String.valueOf(DENIED_PERMISSIONS));
+            }
         }
+
+        retrieveSignalStrength(dontAskAgainDenied, dontAskAgain);
+
     }
 
     @SuppressLint("MissingPermission")
