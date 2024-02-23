@@ -54,6 +54,7 @@ public class HomeFragment extends Fragment {
 
         final TextView textView = binding.deviceInformation;
         final TextView device_Info = binding.deviceInformation;
+
         start_Button.setOnClickListener(view -> {
             homeViewModel.startPingJitterMeasurement(start_Button,progressBar);
             deviceInformation.updateDeviceLocationAndSignal(sharedPreferences.getBoolean("dontAskAgain", false)

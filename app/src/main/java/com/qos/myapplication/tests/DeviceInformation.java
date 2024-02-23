@@ -16,6 +16,7 @@ import android.content.Context;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoCdma;
@@ -185,10 +186,29 @@ public class DeviceInformation {
         setSignalStrength(currentStrength);
     }
 
-    @SuppressLint("MissingPermission")
     public void retrieveLocation(boolean requested) {
         if (requestPermissions.hasLocationPermissions()) {
-            LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+            new LocationManagerTask(requested).execute();
+        } else {
+            setLocation(LOCATION_NOT_FOUND);
+        }
+    }
+
+    private class LocationManagerTask extends AsyncTask<Void, Void, LocationManager> {
+
+        @Override
+        protected LocationManager doInBackground(Void... voids) {
+            return (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        }
+
+        private final boolean requested;
+
+        public LocationManagerTask(boolean requested) {
+            this.requested = requested;
+        }
+
+        @Override
+        protected void onPostExecute(LocationManager locationManager) {
             if (locationManager != null) {
                 gettingLocation(locationManager);
             } else if (!requestPermissions.hasLocationPermissions()) {
@@ -198,8 +218,6 @@ public class DeviceInformation {
                     setLocation(String.valueOf(DENIED_PERMISSIONS));
                 }
             }
-        } else {
-            setLocation(LOCATION_NOT_FOUND);
         }
     }
 
