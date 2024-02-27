@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment;
 
 import com.qos.myapplication.databinding.FragmentHomeBinding;
 import com.qos.myapplication.tests.DeviceInformation;
+import com.qos.myapplication.tests.DownloadSpeedStats;
 import com.qos.myapplication.tests.PingJitterStats;
 
 public class HomeFragment extends Fragment {
@@ -25,6 +26,7 @@ public class HomeFragment extends Fragment {
     public FragmentHomeBinding binding;
     DeviceInformation deviceInformation;
     public Handler handler;
+    DownloadSpeedStats downloadSpeedStats;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -43,9 +45,9 @@ public class HomeFragment extends Fragment {
             deviceInformation = new DeviceInformation(requireContext());
         }
         PingJitterStats pingJitterStats = new PingJitterStats(binding, handler);
-
+        downloadSpeedStats = new DownloadSpeedStats(binding);
         HomeViewModel homeViewModel =
-                new HomeViewModel(deviceInformation, pingJitterStats);
+                new HomeViewModel(deviceInformation, pingJitterStats, downloadSpeedStats);
 
         View root = binding.getRoot();
 
@@ -54,15 +56,18 @@ public class HomeFragment extends Fragment {
 
         final TextView textView = binding.deviceInformation;
         final TextView device_Info = binding.deviceInformation;
+        final TextView downloadSpeed = binding.downloadSpeed;
 
         start_Button.setOnClickListener(view -> {
-            deviceInformation.updateDeviceLocationAndSignal(sharedPreferences.getBoolean("dontAskAgain", false)
-                    ,sharedPreferences.getBoolean("dontAskAgainDenied",false));
-            homeViewModel.startPingJitterMeasurement(start_Button,progressBar);
+            //downloadSpeedStats.measureDownloadSpeed();
+            //homeViewModel.startPingJitterMeasurement(start_Button,progressBar,sharedPreferences);
+            downloadSpeedStats.measureDownloadSpeed();
+            homeViewModel.showDownloadSpeed();
             start_Button.setEnabled(false);
         });
         homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
         homeViewModel.getDeviceInfo().observe(getViewLifecycleOwner(), device_Info::setText);
+        homeViewModel.getDownloadSpeed().observe(getViewLifecycleOwner(), downloadSpeed::setText);
 
         return root;
     }
