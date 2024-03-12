@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.home.HomeFragment">
+    tools:context="com.qos.testnet.ui.home.HomeFragment">
 
     <TextView
         android:id="@+id/text_home"
@@ -73,13 +73,16 @@
             android:layout_gravity="center"
             app:trackColor="#390091EA"
             app:trackCornerRadius="@dimen/activity_vertical_margin"
+            android:visibility="invisible"
              />
     </FrameLayout>
 
     <Button
         android:id="@+id/start_Button"
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="wrap_content"
+        android:maxWidth="320dp"
+        android:padding="@dimen/activity_horizontal_margin"
         android:layout_marginHorizontal="32dp"
         android:layout_marginVertical="16dp"
         android:text="@string/title_start"

@@ -1,0 +1,168 @@
+package com.qos.testnet.utils.deviceInformation;
+/*
+  Class responsible for obtaining and storing device information.
+  <p>
+  This class allows access to the following device data:
+  - Manufacturer (manufacturer)
+  - Model (model)
+  - Android version (androidVersion)
+  - Carrier (carrier)
+  - Signal strength (signalStrength)
+ */
+
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.Build;
+import android.telephony.CellInfo;
+import android.telephony.CellInfoCdma;
+import android.telephony.CellInfoGsm;
+import android.telephony.CellInfoLte;
+import android.telephony.CellInfoNr;
+import android.telephony.CellInfoWcdma;
+import android.telephony.CellSignalStrength;
+import android.telephony.CellSignalStrengthCdma;
+import android.telephony.CellSignalStrengthGsm;
+import android.telephony.CellSignalStrengthLte;
+import android.telephony.CellSignalStrengthNr;
+import android.telephony.TelephonyManager;
+
+import com.qos.testnet.permissionmanager.RequestPermissions;
+
+import java.util.List;
+
+public class DeviceInformation {
+    private static final int NOT_ACTIVE_MOBILE_NETWORK = -1;
+    public final int DENIED_PERMISSIONS = -2;
+    private final Context context;
+    private final RequestPermissions requestPermissions;
+    private String manufacturer;
+    private String model;
+    private String androidVersion;
+    private String carrier;
+    private int signalStrength;
+
+    /**
+     * Constructor for the device information
+     *
+     * @param context requires the app context.
+     **/
+    public DeviceInformation(Context context) {
+        this.context = context;
+        this.requestPermissions = new RequestPermissions(context);
+        setManufacturer();
+        setModel();
+        setAndroidVersion();
+    }
+
+    public String getManufacturer() {
+        return manufacturer;
+    }
+
+    public void setManufacturer() {
+        this.manufacturer = Build.MANUFACTURER;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel() {
+        this.model = Build.MODEL;
+    }
+
+    public String getAndroidVersion() {
+        return androidVersion;
+    }
+
+    public void setAndroidVersion() {
+        this.androidVersion = Build.VERSION.RELEASE;
+    }
+
+    public int getSignalStrength() {
+        return signalStrength;
+    }
+    public void setSignalStrength(int signalStrength) {
+        this.signalStrength = signalStrength;
+    }
+    public String getCarrier() {
+        return carrier;
+    }
+    private void setCarrier(String carrier) {
+        this.carrier = carrier;
+    }
+
+    public void retrieveSignalStrength(boolean requested, boolean request) {
+
+        if (requestPermissions.hasAllNecessaryPermissions()) {
+            gettingSignalStrength();
+        } else if (requestPermissions.hasLocationPermissions()) {
+            gettingSignalStrength();
+        } else if (!requested) {
+            requestPermissions.showPermissionDeniedWarning();
+        } else if (!request) {
+            requestPermissions.requestLocationPermissionsDialog();
+        } else {
+            setSignalStrength(DENIED_PERMISSIONS);
+        }
+    }
+
+    private void gettingSignalStrength() {
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        CellInfo cellInfo;
+        if (telephonyManager != null) {
+            try {
+                @SuppressLint("MissingPermission")
+                List<CellInfo> cellInfoList = telephonyManager.getAllCellInfo();
+                NetworkInfo activeNetworkInfo = ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
+                cellInfo = null;
+                if (cellInfoList != null) {
+                    for (CellInfo info : cellInfoList) {
+                        if (info.isRegistered()) {
+                            cellInfo = info;
+                        }
+                    }
+                    setCarrier(telephonyManager.getNetworkOperatorName());
+                }
+                if (activeNetworkInfo == null || activeNetworkInfo.getType() != ConnectivityManager.TYPE_MOBILE) {
+                    setSignalStrength(NOT_ACTIVE_MOBILE_NETWORK);
+                } else if (activeNetworkInfo.getType() == ConnectivityManager.TYPE_MOBILE) {
+                    measureSignalStrength(cellInfo);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void measureSignalStrength(CellInfo cellInfo) {
+        int currentStrength = 404;
+        if (cellInfo instanceof CellInfoLte) {
+            CellSignalStrengthLte cellSignalStrengthLte = ((CellInfoLte) cellInfo).getCellSignalStrength();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                currentStrength = cellSignalStrengthLte.getRssi(); // The signal for LTE must be RSSI
+            } else {
+                currentStrength = cellSignalStrengthLte.getDbm();
+            }
+        } else if (cellInfo instanceof CellInfoGsm) {
+            CellSignalStrengthGsm cellSignalStrengthGsm = ((CellInfoGsm) cellInfo).getCellSignalStrength();
+            currentStrength = cellSignalStrengthGsm.getDbm();
+        } else if (cellInfo instanceof CellInfoCdma) {
+            CellSignalStrengthCdma cellSignalStrengthCdma = ((CellInfoCdma) cellInfo).getCellSignalStrength();
+            currentStrength = cellSignalStrengthCdma.getDbm();
+        } else if (cellInfo instanceof CellInfoWcdma) {
+            CellSignalStrength cellSignalStrengthWcdma = ((CellInfoWcdma) cellInfo).getCellSignalStrength();
+            currentStrength = cellSignalStrengthWcdma.getDbm();
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (cellInfo instanceof CellInfoNr) {
+                CellSignalStrengthNr cellSignalStrengthNr = (CellSignalStrengthNr) cellInfo.getCellSignalStrength();
+                currentStrength = cellSignalStrengthNr.getDbm();
+            }
+        }
+        setSignalStrength(currentStrength);
+    }
+}
+
+
+
