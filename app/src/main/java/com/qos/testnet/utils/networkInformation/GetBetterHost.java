@@ -1,7 +1,9 @@
 package com.qos.testnet.utils.networkInformation;
 
 
+
 import com.google.firebase.crashlytics.buildtools.reloc.org.apache.http.auth.AuthenticationException;
+import com.qos.testnet.utils.deviceInformation.LocationCallback;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -13,7 +15,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
-public class GetBetterHost extends Thread {
+public class GetBetterHost implements NetworkCallback {
     OkHttpClient client;
     String ISP;
     private JSONArray jsonArray;
@@ -104,8 +106,7 @@ public class GetBetterHost extends Thread {
         return finished;
     }
 
-    @Override
-    public void run() {
+    public void retrieveBestHost(NetworkCallback networkCallback) {
         try {
             client = new OkHttpClient();
             Request request = new Request.Builder()
@@ -116,7 +117,7 @@ public class GetBetterHost extends Thread {
                 //Make the request
                 Response response = client.newCall(request).execute();
                 if(!response.isSuccessful()){
-                    throw new IOException("Failed to get response from server: " + response);
+                    networkCallback.onRequestFailure("Failed to get response from server: " + response);
                 }else {
                     double minDistance = Double.MAX_VALUE;
                     //Obtain the body of the response on a JSON
@@ -131,10 +132,8 @@ public class GetBetterHost extends Thread {
                         String serverSponsor = jsonObject.getString("sponsor");
                         double distance = vicentyDistance(selfLat, selfLon, serverLat, serverLon);
                         if (serverSponsor.trim().equalsIgnoreCase(ISP.trim())) {
-                            if (distance < minDistance) {
                                 minDistance = distance;
                                 bestHostUrl = jsonObject.getString("url");
-                            }
                         } else {
                             if (distance < minDistance) {
                                 minDistance = distance;
@@ -154,12 +153,13 @@ public class GetBetterHost extends Thread {
             ex.printStackTrace();
             return;
         }
+        networkCallback.onRequestSuccess(getUrlAddress());
         finished = true;
     }
 
 
 
-    public void getBestHost(String usrLocation, String ISP){
+    public void getBestHost(String usrLocation, String ISP, NetworkCallback networkCallback){
         this.ISP = ISP;
         String[] locationParts = usrLocation.split(",");
         if (locationParts.length != 2) {
@@ -167,12 +167,12 @@ public class GetBetterHost extends Thread {
         }
         selfLat = Double.parseDouble(locationParts[0].trim());
         selfLon = Double.parseDouble(locationParts[1].trim());
-        start();
+        retrieveBestHost(networkCallback);
     }
-    public void getBestHost(String ISP){
+    public void getBestHost(String ISP, NetworkCallback networkCallback){
         getLocation();
         this.ISP = ISP;
-        start();
+        retrieveBestHost(networkCallback);
     }
 
     public void getLocation(){
@@ -238,4 +238,13 @@ public class GetBetterHost extends Thread {
         return distanceMt / 1000;
     }
 
+    @Override
+    public void onRequestSuccess(String urlAddress) {
+
+    }
+
+    @Override
+    public void onRequestFailure(String error) {
+
+    }
 }

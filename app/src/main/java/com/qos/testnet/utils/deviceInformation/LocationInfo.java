@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class LocationInfo {
+public class LocationInfo implements LocationCallback {
     private static final String LOCATION_NOT_FOUND = "Location not found";
     private static final String NETWORK_LOCATION_NOT_FOUND = "Network location not found";
     private static final String GPS_LOCATION_NOT_FOUND = "GPS location not found";
@@ -109,11 +109,24 @@ public class LocationInfo {
         }
     }
 
-    public interface LocationCallback {
-        void onLocationSuccess(String location);
-        void onApproxLocationSuccess(String location);
-        void onLocationFailed(String error);
-        void onApproxLocationFailed(String error);
-        void onLocationRetrievalException(Exception e);
-}
+    public void onLocationSuccess(String location) {
+
+    }
+
+    public void onApproxLocationSuccess(String location) {
+
+    }
+
+    public void onLocationFailed(String error) {
+
+    }
+
+    public void onApproxLocationFailed(String error) {
+
+    }
+
+    public void onLocationRetrievalException(Exception e) {
+
+    }
+
 }

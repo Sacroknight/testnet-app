@@ -175,7 +175,7 @@ public class UploadSpeedStats extends Thread {
         start();
     }
     private void run2() {
-        binding.textHome.setText(String.valueOf(uploadedBytes));
+        binding.instantMeasurements.setText(String.valueOf(uploadedBytes));
         binding.testProgressIndicator.setMax((int) (instantUploadRate + 10));
         binding.testProgressIndicator.setProgress((int) instantUploadRate);
     }

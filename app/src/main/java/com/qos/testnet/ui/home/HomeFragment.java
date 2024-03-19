@@ -13,14 +13,10 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.qos.myapplication.databinding.FragmentHomeBinding;
-import com.qos.testnet.tests.DownloadSpeedStats;
-import com.qos.testnet.tests.PingAndJitterMeasurements;
-import com.qos.testnet.tests.UploadSpeedStats;
-import com.qos.testnet.utils.networkInformation.GetBetterHost;
-import com.qos.testnet.utils.deviceInformation.DeviceInformation;
-import com.qos.testnet.utils.deviceInformation.LocationInfo;
 
 /**
  * The Home fragment.
@@ -29,41 +25,46 @@ public class HomeFragment extends Fragment {
 
     public FragmentHomeBinding binding;
     public Handler handler;
-    DeviceInformation deviceInformation;
-
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
-        Bundle args = getArguments();
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         handler = new Handler(Looper.getMainLooper());
-        GetBetterHost getBetterHost = new GetBetterHost();
-        LocationInfo locationInfo = new LocationInfo(requireContext());
-        DownloadSpeedStats downloadSpeedStats = new DownloadSpeedStats(binding, handler);
-        UploadSpeedStats uploadSpeedStats = new UploadSpeedStats(binding, handler);
-        if (args != null && args.containsKey("device_info")) {
-            deviceInformation = (DeviceInformation) args.getSerializable("device_info");
-        } else if (deviceInformation == null) {
-            deviceInformation = new DeviceInformation(requireContext());
-        }
-        PingAndJitterMeasurements pingAndJitterMeasurements = new PingAndJitterMeasurements(binding, handler);
 
-        final TextView textView = binding.deviceInformation;
-        final TextView device_Info = binding.deviceInformation;
-        final TextView downloadSpeed = binding.downloadSpeed;
-        final Button start_Button = binding.startButton;
-        final ProgressBar progressBar = binding.testProgressIndicator;
 
-        HomeViewModel homeViewModel = new HomeViewModel(deviceInformation, pingAndJitterMeasurements,
-                downloadSpeedStats, uploadSpeedStats, getBetterHost, locationInfo, requireContext(), handler, start_Button, progressBar);
+        HomeViewModelFactory factory = new HomeViewModelFactory(requireContext());
+        HomeViewModel homeViewModel = new ViewModelProvider(this, factory).get(HomeViewModel.class);
         View root = binding.getRoot();
 
-        start_Button.setOnClickListener(view -> {
-            progressBar.setVisibility(View.VISIBLE);
+        binding.startButton.setOnClickListener(view -> {
+            binding.startButton.setEnabled(false);
+            binding.testProgressIndicator.setVisibility(View.VISIBLE);
             homeViewModel.startTasks();
         });
-        homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
-        homeViewModel.getDeviceInfo().observe(getViewLifecycleOwner(), device_Info::setText);
-        homeViewModel.getDownloadSpeed().observe(getViewLifecycleOwner(), downloadSpeed::setText);
+
+        HomeViewModel.getInstantMeasurements().observe(getViewLifecycleOwner(), s -> binding.instantMeasurements.setText(s));
+
+
+        // Observe the device info and update the UI accordingly
+        HomeViewModel.getDeviceInfo().observe(getViewLifecycleOwner(), new Observer<String>() {
+            @Override
+            public void onChanged(String deviceInfo) {
+                binding.deviceInformation.setText(deviceInfo);
+            }
+        });
+
+        // Observe the progress and update the UI accordingly
+        HomeViewModel.getProgress().observe(getViewLifecycleOwner(), new Observer<Integer>() {
+            @Override
+            public void onChanged(Integer progress) {
+                binding.testProgressIndicator.setProgress(progress);
+            }
+        });
+        HomeViewModel.getJitterMeasurement().observe(getViewLifecycleOwner(), new Observer<String>() {
+            @Override
+            public void onChanged(String s) {
+
+            }
+        });
 
         return root;
     }
