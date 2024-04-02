@@ -169,6 +169,7 @@ public class GetBetterHost implements NetworkCallback {
         selfLon = Double.parseDouble(locationParts[1].trim());
         retrieveBestHost(networkCallback);
     }
+
     public void getBestHost(String ISP, NetworkCallback networkCallback){
         getLocation();
         this.ISP = ISP;

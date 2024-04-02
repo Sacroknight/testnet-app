@@ -1,19 +1,14 @@
 package com.qos.testnet.ui.home;
 
-
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.qos.myapplication.databinding.FragmentHomeBinding;
@@ -25,6 +20,7 @@ public class HomeFragment extends Fragment {
 
     public FragmentHomeBinding binding;
     public Handler handler;
+
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
@@ -41,34 +37,27 @@ public class HomeFragment extends Fragment {
             homeViewModel.startTasks();
         });
 
-        HomeViewModel.getInstantMeasurements().observe(getViewLifecycleOwner(), s -> binding.instantMeasurements.setText(s));
+        // Observe the instant measurements and update the UI accordingly
+        HomeViewModel.getInstantMeasurements().observe(getViewLifecycleOwner(), s
+                -> binding.instantMeasurements.setText(s));
 
+        // Observe the changes on the button and update the UI accordingly
+        HomeViewModel.isFinished().observe(getViewLifecycleOwner(), testFinished
+                -> binding.startButton.setEnabled(testFinished));
 
         // Observe the device info and update the UI accordingly
-        HomeViewModel.getDeviceInfo().observe(getViewLifecycleOwner(), new Observer<String>() {
-            @Override
-            public void onChanged(String deviceInfo) {
-                binding.deviceInformation.setText(deviceInfo);
-            }
-        });
+        HomeViewModel.getDeviceInfo().observe(getViewLifecycleOwner(), deviceInfo
+                -> binding.deviceInformation.setText(deviceInfo));
 
         // Observe the progress and update the UI accordingly
-        HomeViewModel.getProgress().observe(getViewLifecycleOwner(), new Observer<Integer>() {
-            @Override
-            public void onChanged(Integer progress) {
-                binding.testProgressIndicator.setProgress(progress);
-            }
-        });
-        HomeViewModel.getJitterMeasurement().observe(getViewLifecycleOwner(), new Observer<String>() {
-            @Override
-            public void onChanged(String s) {
+        HomeViewModel.getProgress().observe(getViewLifecycleOwner(), progress
+                -> binding.testProgressIndicator.setProgress(progress));
+        HomeViewModel.getJitterMeasurement().observe(getViewLifecycleOwner(), s -> {
 
-            }
         });
 
         return root;
     }
-
     @Override
     public void onDestroyView() {
         binding.testProgressIndicator.setProgress(0);

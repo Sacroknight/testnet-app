@@ -9,5 +9,5 @@ public interface LocationCallback {
 
     void onApproxLocationFailed(String error);
 
-    void onLocationRetrievalException(Exception e);
+    void onLocationRetrievalException(String e);
 }

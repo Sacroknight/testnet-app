@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 
 
@@ -19,10 +20,10 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
     private static final int ERROR_MEASURING_PING = -1;
     private int probes = 0;
 
-    private MutableLiveData<String> instantPing = null;
-    private MutableLiveData<String> finalPing = null;
-    private MutableLiveData<String> jitter = null;
-    private MutableLiveData<Integer> progress = null;
+    private MutableLiveData<String> instantPing = new MutableLiveData<>();
+    private MutableLiveData<String> finalPing = new MutableLiveData<>();
+    private MutableLiveData<String> jitterLiveData = new MutableLiveData<>();
+    private MutableLiveData<Integer> progress = new MutableLiveData<>();
     Map<String, Integer> host;
     private int pingMeasure;
     private int jitterMeasure;
@@ -58,7 +59,7 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
      * Return the jitter measured.
      * @return jitter measured
      */
-    public int getJitterMeasure() {
+    public int getJitterMeasured() {
         return jitterMeasure;
     }
 
@@ -74,13 +75,13 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
      * @return jitter measured
      */
     public MutableLiveData<String> getJitterLivedata() {
-        return jitter;
+        return jitterLiveData;
     }
     /**
      * Set the jitter measured for the ui updates.
      */
     public void setJitterLivedata(String jitterMeasured) {
-        jitter.postValue(jitterMeasured);
+        jitterLiveData.postValue(jitterMeasured);
     }
 
     public PingAndJitterStats() {
@@ -88,7 +89,7 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
         progress = new MutableLiveData<>();
         instantPing = new MutableLiveData<>();
         finalPing = new MutableLiveData<>();
-        jitter = new MutableLiveData<>();
+        jitterLiveData = new MutableLiveData<>();
         finished = false;
     }
     private void getMostVisitedWebsites() {
@@ -126,16 +127,20 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
 
 
     private void calculateAndSetStatistics(List<Integer> pingList, TestCallback testCallback) {
-        int averagePing = (int) pingList.stream().mapToInt(Integer::intValue).average().orElse(0);
-        double variance = pingList.stream().mapToDouble(ping -> Math.pow(ping - averagePing, 2)).average().orElse(0);
+        try{
+            int averagePing = (int) pingList.stream().mapToInt( Integer:: intValue). average().orElse( 0) ;
+            double variance = pingList.stream().mapToDouble(ping -> Math.pow(ping - averagePing, 2)).average().orElse(0);
         int jitter = (int) Math.sqrt(variance);
         setFinalPing(averagePing);
-        setFinalMeasurement(averagePing + " ms");
         setJitterMeasure(jitter);
-        setJitterLivedata(jitter + " ms");
         setFinished(true);
-        testCallback.OnTestSuccess(jitter + " ms");
+        } finally {
+            setJitterLivedata(getJitterMeasured() + " ms");
+            setFinalMeasurement(getPingMeasured() + " ms");
+            testCallback.OnTestSuccess(getJitterMeasured() + " ms");
+        }
     }
+
 
 
     private int measuringPing(String chosenHost, TestCallback testCallback) {
@@ -171,7 +176,7 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
         return ping;
     }
     /**
-     * Set the instant ping measured.
+     * Get the instant ping measured.
      */
     @Override
     public MutableLiveData<String> getInstantMeasurement() {

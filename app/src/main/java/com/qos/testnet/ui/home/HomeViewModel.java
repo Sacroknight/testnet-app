@@ -3,9 +3,10 @@ package com.qos.testnet.ui.home;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Toast;
 
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
@@ -24,12 +25,14 @@ import com.qos.testnet.utils.networkInformation.NetworkCallback;
  * Creates the view model for the MVVM architecture
  */
 public class HomeViewModel extends ViewModel {
-    private static MutableLiveData<String> deviceInfo = null;
-    private static MutableLiveData<String> pingMeasurement = null;
-    private static MutableLiveData<String> instantMeasurements = null;
-    private static MutableLiveData<String> jitterMeasurement = null;
-    private static MutableLiveData<Integer> progress = null;
-    private static MutableLiveData<String> instantDownloadRate = null;
+    private static MutableLiveData<String> deviceInfo = new MutableLiveData<>();
+    private static MutableLiveData<String> pingMeasurement = new MutableLiveData<>();
+    private static MutableLiveData<String> instantMeasurements = new MutableLiveData<>();
+    private static MutableLiveData<String> jitterMeasurement = new MutableLiveData<>();
+    private static MutableLiveData<Integer> progress = new MutableLiveData<>();
+    private static MutableLiveData<String> finalDownloadRate = new MutableLiveData<>();
+    private static MutableLiveData<String> availableServers = new MutableLiveData<>();
+    private static MutableLiveData<Boolean> isFinished = new MutableLiveData<>();
     private DeviceInformation deviceInformation = null;
     private GetBetterHost getBetterHost = null;
     private PingAndJitterTest pingAndJitterTest = null;
@@ -41,56 +44,12 @@ public class HomeViewModel extends ViewModel {
     private boolean dontAskAgain;
     private boolean dontAskAgainDenied;
     private boolean success;
-    private MutableLiveData<String> finalDownloadRate = null;
 
-    /**
-     * Start the location retrieval process
-     */
-    private void retrieveLocation() {
-        try {
-            locationInfo.retrieveLocation(locationCallback, dontAskAgain, dontAskAgainDenied);
-        } catch (Exception e) {
-            e.printStackTrace();
-            locationCallback.onLocationRetrievalException(e);
-        }
-    }
-
-    /**
-     * Start ping and jitter test
-     */
-    public void startPingJitterTest() {
-        pingAndJitterTest.startPingAndJitterTest(new TestCallback() {
-            @Override
-            public void OnTestStart() {
-                deviceInfo.postValue("");
-            }
-
-            @Override
-            public void OnTestSuccess(String jitter) {
-                pingMeasurement.postValue(pingAndJitterTest.getPingMeasurement().getValue());
-                jitterMeasurement.postValue(pingAndJitterTest.getJitterMeasurement().getValue());
-                deviceInfo.postValue(getDeviceInfoText());
-                progress.postValue(0);
-            }
-
-            @Override
-            public void OnTestBackground(String currentBackgroundMeasurement, int currentBackgroundProgress) {
-                    instantMeasurements.postValue(currentBackgroundMeasurement);
-                    progress.postValue(currentBackgroundProgress);
-            }
-
-            @Override
-            public void OnTestFailure() {
-                TestCallback.super.OnTestFailure();
-            }
-        });
-    }
-
-    public static LiveData<String> getPingMeasurement() {
+    public static MutableLiveData<String> getPingMeasurement() {
         return pingMeasurement;
     }
 
-    public static LiveData<String> getJitterMeasurement() {
+    public static MutableLiveData<String> getJitterMeasurement() {
         return jitterMeasurement;
     }
 
@@ -102,38 +61,172 @@ public class HomeViewModel extends ViewModel {
         return instantMeasurements;
     }
 
-    public static LiveData<Integer> getProgress() {
+    public static MutableLiveData<Integer> getProgress() {
         return progress;
     }
+    public static MutableLiveData<Boolean> isFinished() {
+        return isFinished;
+    }
+    private String location;
+    public String getLocation() {
+        return location;
+    }
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    /**
+     * Start the location retrieval process
+     */
+    private void startLocationRetrieval() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    locationInfo.retrieveLocation(dontAskAgain, dontAskAgainDenied, new LocationCallback() {
+                        @Override
+                        public void onLocationSuccess(String gpsLocation) {
+                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (!success) {
+                                        setLocation(gpsLocation);
+                                        getBestHostForNetworkTests();
+                                        success = true;
+                                    }
+                                }
+                            }, 100);
+                        }
+
+                        @Override
+                        public void onApproxLocationSuccess(String networkLocation) {
+                            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (!success) {
+                                        setLocation(networkLocation);
+                                        getBestHostForNetworkTests();
+                                        success = true;
+                                    }
+                                }
+                            }, 100);
+                        }
+
+                        @Override
+                        public void onLocationFailed(String error) {
+                            Toast.makeText(context, "Gps location unavailable: %s" + error, Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onApproxLocationFailed(String error) {
+                            deviceInfo.postValue("Network location unavailable: %s" + error);
+                        }
+
+                        @Override
+                        public void onLocationRetrievalException(String e) {
+                            deviceInfo.postValue("Location retrieval failed: " + e);
+                        }
+                    });
+                } finally {
+                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (!success) {
+                                getBestHostForNetworkTestsWithApi();
+                            } else {
+                                success = false;
+                            }
+                        }
+                    }, 100);
+
+                }
+            }
+        }).start();
+    }
+
+    /**
+     * Start ping and jitter test
+     */
+    public void startPingAndJitterTest() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                pingAndJitterTest.startPingAndJitterTest(new TestCallback() {
+                    @Override
+                    public void OnTestStart() {
+                        deviceInfo.postValue("");
+                    }
+
+                    @Override
+                    public void OnTestSuccess(String jitter) {
+                        pingMeasurement.postValue(pingAndJitterTest.getPingMeasurement().getValue());
+                        jitterMeasurement.postValue(pingAndJitterTest.getJitterMeasurement().getValue());
+                        instantMeasurements.postValue("");
+                        progress.postValue(0);
+                        new Handler(Looper.getMainLooper()).postDelayed(
+                                HomeViewModel.this::startDownloadSpeedTest, 500);
+                    }
+
+                    @Override
+                    public void OnTestBackground(String currentBackgroundMeasurement,
+                                                 int currentBackgroundProgress) {
+                        instantMeasurements.postValue(currentBackgroundMeasurement);
+                        progress.postValue(currentBackgroundProgress);
+                    }
+
+                    @Override
+                    public void OnTestFailure() {
+                        TestCallback.super.OnTestFailure();
+                    }
+                });
+            }
+        }).start();
+    }
+
+
 
     /**
      * Start download speed test
      */
     public void startDownloadSpeedTest() {
-        downloadSpeedTest.startSpeedTest(getBetterHost.getUrlAddress(), new TestCallback() {
+        new Thread(new Runnable() {
             @Override
-            public void OnTestStart() {
-                deviceInfo.postValue("");
-            }
+            public void run() {
+                try {
+                    downloadSpeedTest.startSpeedTest(getBetterHost.getUrlAddress(), new
+                            TestCallback() {
+                                @Override
+                                public void OnTestStart() {
+                                    deviceInfo.postValue("");
+                                }
 
-            @Override
-            public void OnTestSuccess(String downloadSpeed) {
-                finalDownloadRate.postValue(downloadSpeed);
-                deviceInfo.postValue(getDeviceInfoText());
-                progress.postValue(0);
-            }
-            @Override
-            public void OnTestBackground(String currentBackgroundMeasurement, int currentBackgroundProgress) {
-                    progress.postValue(downloadSpeedTest.getInstantDownloadRateProgress().getValue());
-                    instantDownloadRate.postValue(downloadSpeedTest.getInstantDownloadRate().getValue());
-            }
+                                @Override
+                                public void OnTestSuccess(String downloadSpeed) {
+                                    finalDownloadRate.postValue(downloadSpeed);
+                                }
+
+                                @Override
+                                public void OnTestBackground(String currentBackgroundMeasurement,
+                                                             int currentBackgroundProgress) {
+                                    progress.postValue(currentBackgroundProgress);
+                                    instantMeasurements.postValue(currentBackgroundMeasurement);
+                                }
 
 
-            @Override
-            public void OnTestFailure() {
-                TestCallback.super.OnTestFailure();
+                                @Override
+                                public void OnTestFailure() {
+                                    TestCallback.super.OnTestFailure();
+                                }
+
+                            });
+                } finally {
+                    progress.postValue(0);
+                    instantMeasurements.postValue("");
+                    deviceInfo.postValue(getDeviceInformation());
+                    isFinished.postValue(true);
+                }
             }
-        });
+        }).start();
     }
 
     /**
@@ -151,7 +244,6 @@ public class HomeViewModel extends ViewModel {
         jitterMeasurement = new MutableLiveData<>();
         progress = new MutableLiveData<>();
         deviceInfo = new MutableLiveData<>();
-        instantDownloadRate = new MutableLiveData<>();
         finalDownloadRate = new MutableLiveData<>();
         success = false;
         updatePreferences(context);
@@ -164,7 +256,7 @@ public class HomeViewModel extends ViewModel {
 
         @Override
         public void onRequestSuccess(String response) {
-            startPingJitterTest();
+            availableServers.postValue(response);
         }
 
         @Override
@@ -173,62 +265,14 @@ public class HomeViewModel extends ViewModel {
             Toast.makeText(context, "Failure on the request of the best host", Toast.LENGTH_LONG).show();
         }
     };
-    /**
-     * The Location callback.
-     */
-    LocationCallback locationCallback = new LocationCallback() {
-        @Override
-        public void onLocationSuccess(String location) {
-            if (!success) {
-                getBestHostAndStartTasks(location);
-                success = true;
-            }
-        }
 
-        @Override
-        public void onApproxLocationSuccess(String location) {
-            if (!success) {
-                getBestHostAndStartTasks(location);
-                success = true;
-            }
-        }
-
-        @Override
-        public void onLocationFailed(String error) {
-            if (!success) {
-                getBestHostAndStartTasks();
-                success = true;
-            }
-            Toast.makeText(context, "Gps location unavailable: %s" + error, Toast.LENGTH_SHORT).show();
-        }
-
-        @Override
-        public void onApproxLocationFailed(String error) {
-            if (!success) {
-                getBestHostAndStartTasks();
-                success = true;
-            }
-            deviceInfo.postValue(getDeviceInfoText());
-            Toast.makeText(context, "Network location unavailable: %s" + error, Toast.LENGTH_LONG).show();
-        }
-
-        @Override
-        public void onLocationRetrievalException(Exception e) {
-            if (!success) {
-                getBestHostAndStartTasks();
-                success = true;
-            }
-            e.printStackTrace();
-            deviceInfo.postValue("Location retrieval failed: " + e.getMessage());
-        }
-    };
 
     /**
      * Gets device info text.
      *
      * @return the device info text
      */
-    public String getDeviceInfoText() {
+    public String getDeviceInformation() {
 
         return "Manufacturer: " + deviceInformation.getManufacturer() +
                 "\nModel: " + deviceInformation.getModel() +
@@ -238,10 +282,10 @@ public class HomeViewModel extends ViewModel {
                 "\nSignal Strength: " + deviceInformation.getCarrier() + " " +
                 deviceInformation.getSignalStrength() + " dBm" +
                 "\nCurrent Host: " + pingAndJitterTest.getCurrentHost() +
-                "\nPing: " + pingAndJitterTest.getPingMeasurement().getValue() +
-                "\nJitter: " + pingAndJitterTest.getJitterMeasurement().getValue() +
+                "\nPing: " + pingAndJitterTest.getPingMeasured() + " ms" +
+                "\nJitter: " + pingAndJitterTest.getJitterMeasured() + " ms" +
                 "\nBest server: " + getBetterHost.getUrlAddress() +
-                "\nDownload Speed" + downloadSpeedTest.getFinalDownloadRate().getValue() ;
+                "\nDownload Speed: " + downloadSpeedTest.getFinalDownloadSpeed() + " Mb/s";
     }
 
     /**
@@ -259,9 +303,15 @@ public class HomeViewModel extends ViewModel {
      */
     public void startTasks() {
         deviceInformation.retrieveSignalStrength(dontAskAgain, dontAskAgainDenied);
-        retrieveLocation();
+        startLocationRetrieval();
     }
 
+    public void getBetterHost(){
+        getBetterHost.getBestHost(locationInfo.getCurrentLocation(),deviceInformation.getCarrier(),networkCallback);
+    }
+    private void getBetterHostAPI(){
+        getBetterHost.getBestHost(deviceInformation.getCarrier(), networkCallback);
+    }
     /**
      * Initiates a new thread to asynchronously determine the best host for conducting network tests,
      * including ping and jitter measurements.
@@ -272,15 +322,24 @@ public class HomeViewModel extends ViewModel {
      * <p>
      * note: This method is called only if the retrieve of the location is successful
      * <p>
+     *
      * **Key Functionality:**
      * - Asynchronously identifies the optimal host for network tests.
      * - Initiates ping and jitter measurements on the chosen host.
      *
-     * @param location the location retrieved by the user device
      */
 
-    private void getBestHostAndStartTasks(String location) {
-        getBetterHost.getBestHost(location, deviceInformation.getCarrier(), networkCallback);
+    private void getBestHostForNetworkTests() {
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                getBetterHost();
+                new Handler(Looper.getMainLooper()).postDelayed(
+                        HomeViewModel.this::startPingAndJitterTest, 100);
+            }
+
+        }).start();
     }
 
     /**
@@ -297,8 +356,16 @@ public class HomeViewModel extends ViewModel {
      * - Asynchronously identifies the optimal host for network tests.
      * - Initiates ping and jitter measurements on the chosen host.
      */
-    private void getBestHostAndStartTasks() {
-        getBetterHost.getBestHost(deviceInformation.getCarrier(), networkCallback);
+    private void getBestHostForNetworkTestsWithApi() {
+        new Thread(() -> {
+            getBetterHostAPI();
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    startPingAndJitterTest();
+                }
+            }, 100);
+        }).start();
     }
 }
 

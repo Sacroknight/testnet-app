@@ -105,7 +105,7 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
         } else {
             this.instantDownloadRate = 0.0;
         }
-        setInstantMeasurement(getInstantDownloadRate()+ " MB/s");
+        setInstantMeasurement(getInstantDownloadRate()+ " Mb/s");
         setProgress(roundInt(getInstantDownloadRate()));
     }
 
@@ -135,56 +135,60 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
         client = new OkHttpClient();
     }
     public void runDownloadSpeedTest(TestCallback testCallback,String url) {
-        OnTestStart();
-        urlServer = url;
-        downloadedBytes = 0;
-        List<String> fileUrls = new ArrayList<>();
-        fileUrls.add(urlServer + "random2000x2000.jpg");
-        fileUrls.add(urlServer + "random3000x3000.jpg");
-        fileUrls.add(urlServer + "random5000x5000.jpg");
-        fileUrls.add(urlServer + "random6000x6000.jpg");
-        startTime = System.currentTimeMillis();
-        outer:
-        for (String link : fileUrls) {
-            try {
-                Request request = new Request.
-                        Builder().url(link).build();
-                Response response = client.newCall(request).execute();
-                if (!response.isSuccessful()){
-                    String errorMessage = "Unexpected code " + response + ": " + response.message();
-                    Log.e("DownloadSpeedStats", errorMessage);
-                    testCallback.OnTestFailed(errorMessage);
-                }
-                byte[] buffer = new byte[31250];
-                assert response.body() != null;
-                InputStream inputStream = response.body().byteStream();
-                int len;
-                while((len = inputStream.read(buffer)) != -1){
-                    downloadedBytes += len;
-                    endTime = System.currentTimeMillis();
-                    downloadElapsedTime = (double) (endTime - startTime) /1000;
-                    setInstantDownloadRate(downloadedBytes, downloadElapsedTime);
-                    testCallback.OnTestBackground(getInstantDownloadRate()+ " MB/s", roundInt(getInstantDownloadRate()));
-                    /*
-                     * The Timeout.
-                     */
-                    int TIME_OUT = 15;
-                    if (downloadElapsedTime >= TIME_OUT){
-                        break outer;
+        try {
+            OnTestStart();
+            urlServer = url;
+            downloadedBytes = 0;
+            List<String> fileUrls = new ArrayList<>();
+            fileUrls.add(urlServer + "random2000x2000.jpg");
+            fileUrls.add(urlServer + "random3000x3000.jpg");
+            fileUrls.add(urlServer + "random5000x5000.jpg");
+            fileUrls.add(urlServer + "random6000x6000.jpg");
+            startTime = System.currentTimeMillis();
+            outer:
+            for (String link : fileUrls) {
+                try {
+                    Request request = new Request.
+                            Builder().url(link).build();
+                    Response response = client.newCall(request).execute();
+                    if (!response.isSuccessful()) {
+                        String errorMessage = "Unexpected code " + response + ": " + response.message();
+                        Log.e("DownloadSpeedStats", errorMessage);
+                        testCallback.OnTestFailed(errorMessage);
                     }
+                    byte[] buffer = new byte[31250];
+                    assert response.body() != null;
+                    InputStream inputStream = response.body().byteStream();
+                    int len;
+                    while ((len = inputStream.read(buffer)) != -1) {
+                        downloadedBytes += len;
+                        endTime = System.currentTimeMillis();
+                        downloadElapsedTime = (double) (endTime - startTime) / 1000;
+                        setInstantDownloadRate(downloadedBytes, downloadElapsedTime);
+                        testCallback.OnTestBackground(getInstantDownloadRate() + " Mb/s", roundInt(getInstantDownloadRate()));
+                        /*
+                         * The Timeout.
+                         */
+                        int TIME_OUT = 30;
+                        if (downloadElapsedTime >= TIME_OUT) {
+                            break outer;
+                        }
+                    }
+                    inputStream.close();
+                    response.close();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
                 }
-                inputStream.close();
-                response.close();
-            } catch (Exception ex) {
-                ex.printStackTrace ();
             }
+            endTime = System.currentTimeMillis();
+            downloadElapsedTime = (endTime - startTime) / 1e3;
+            setFinalDownloadRate((downloadedBytes *8*1e-6) / downloadElapsedTime);
+            setFinalMeasurement(finalDownloadRate + " Mb/s");
+
+        }finally{
+            finished = true;
+            testCallback.OnTestSuccess(getFinalDownloadRate() + " Mb/s");
         }
-        endTime = System.currentTimeMillis ();
-        downloadElapsedTime = (endTime - startTime)/1e3;
-        setFinalDownloadRate(((downloadedBytes*8*1e6) / downloadElapsedTime));
-        setFinalMeasurement(finalDownloadRate + " Mb/s");
-        finished = true;
-        testCallback.OnTestSuccess(getFinalDownloadRate() + " Mb/s");
     }
 
 

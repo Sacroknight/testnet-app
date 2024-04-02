@@ -3,7 +3,7 @@ package com.qos.testnet.tests;
 import androidx.databinding.BaseObservable;
 import androidx.lifecycle.MutableLiveData;
 
-public class DownloadSpeedTest {
+public class DownloadSpeedTest extends BaseObservable {
     private final DownloadSpeedStats downloadSpeedStats;
     public DownloadSpeedTest() {
         downloadSpeedStats = new DownloadSpeedStats();
@@ -12,6 +12,7 @@ public class DownloadSpeedTest {
         downloadSpeedStats.setFinished(false);
         downloadSpeedStats.runDownloadSpeedTest(callback, url);
     }
+
     public boolean isSpeedTestComplete() {
         return downloadSpeedStats.isFinished();
     }
@@ -24,5 +25,8 @@ public class DownloadSpeedTest {
     }
     public MutableLiveData<Integer> getInstantDownloadRateProgress(){
         return downloadSpeedStats.getProgress();
+    }
+    public double getFinalDownloadSpeed(){
+        return downloadSpeedStats.getFinalDownloadRate();
     }
 }

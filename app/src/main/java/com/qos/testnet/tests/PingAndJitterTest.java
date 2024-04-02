@@ -27,6 +27,12 @@ public class PingAndJitterTest {
     public MutableLiveData<String> getInstantPingMeasurement() {
         return pingAndJitterStats.getInstantMeasurement();
     }
+    public int getPingMeasured(){
+        return pingAndJitterStats.getPingMeasured();
+    }
+    public int getJitterMeasured(){
+        return pingAndJitterStats.getJitterMeasured();
+    }
     public MutableLiveData<Integer> getProgress(){
         return pingAndJitterStats.getProgress();
     }

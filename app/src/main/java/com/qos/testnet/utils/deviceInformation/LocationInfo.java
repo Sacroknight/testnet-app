@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class LocationInfo implements LocationCallback {
     private static final String LOCATION_NOT_FOUND = "Location not found";
@@ -41,7 +42,7 @@ public class LocationInfo implements LocationCallback {
         this.approximateLocation = approximateLocation;
     }
 
-    public void retrieveLocation(LocationCallback callback, boolean dontAskAgain, boolean dontAskAgainDenied) {
+    public void retrieveLocation(boolean dontAskAgain, boolean dontAskAgainDenied, LocationCallback callback) {
         if (requestPermissions.hasLocationPermissions()) {
             try {
                 getLocation(callback, dontAskAgain, dontAskAgainDenied);
@@ -61,6 +62,7 @@ public class LocationInfo implements LocationCallback {
 
     @SuppressLint("MissingPermission")
     private void getLocation(LocationCallback callback, boolean dontAskAgain, boolean dontAskAgainDenied) {
+        AtomicReference<String> errorMessage = new AtomicReference<>("All in order");
         CompletableFuture<LocationManager> locationManagerFuture = CompletableFuture.supplyAsync(() ->
                 (LocationManager) context.getSystemService(Context.LOCATION_SERVICE));
         if (requestPermissions.hasLocationPermissions()) {
@@ -76,6 +78,7 @@ public class LocationInfo implements LocationCallback {
                     locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER,
                             networkLocationFuture::complete,
                             context.getMainLooper());
+                    boolean exception = false;
                     try {
                         Location networkLocation = networkLocationFuture.get();
                         Location gpsLocation = gpsLocationFuture.get(10, TimeUnit.SECONDS);
@@ -100,10 +103,16 @@ public class LocationInfo implements LocationCallback {
                             setApproximateLocation(LOCATION_NOT_FOUND);
                         }
                     } catch (TimeoutException | InterruptedException | ExecutionException e) {
-                        callback.onLocationRetrievalException(e);
+                        errorMessage.set(ERROR_RETRIEVING_LOCATION + e.getMessage());
+                        exception =true;
+                    } finally {
+                        if (exception) {
+                            callback.onLocationRetrievalException(errorMessage.get());
+                        }
                     }
                 }
             }).exceptionally(e -> {
+                callback.onLocationFailed(e.getMessage());
                 return null;
             });
         }
@@ -125,7 +134,7 @@ public class LocationInfo implements LocationCallback {
 
     }
 
-    public void onLocationRetrievalException(Exception e) {
+    public void onLocationRetrievalException(String e) {
 
     }
 
