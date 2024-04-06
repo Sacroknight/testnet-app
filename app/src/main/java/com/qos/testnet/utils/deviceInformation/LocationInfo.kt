@@ -1,141 +1,241 @@
-package com.qos.testnet.utils.deviceInformation;
+package com.qos.testnet.utils.deviceInformation
 
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.location.Location;
-import android.location.LocationManager;
+import android.annotation.SuppressLint
+import android.content.Context
+import android.location.Location
+import android.location.LocationManager
+import com.google.firebase.crashlytics.buildtools.reloc.org.apache.http.auth.AuthenticationException
+import com.qos.testnet.permissionmanager.RequestPermissions
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.json.JSONException
+import org.json.JSONObject
+import java.io.IOException
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
-import com.qos.testnet.permissionmanager.RequestPermissions;
+class LocationInfo(private val context: Context){
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
+    private var client: OkHttpClient = OkHttpClient()
+    private var apiUrl: String =
+        "https://api.ip2location.io/?key=30ABFB42A85F6E2C877172679CC6DD48&format=json"
+    var currentLongitudeGPS: Double? = null
+    var currentLatitudeGPS: Double? = null
+    var currentLatitudeNetwork:Double? = null
+    var currentLongitudeNetwork:Double? = null
+    var currentLatitudeApi:Double? = null
+    var currentLongitudeApi:Double? = null
+    val DENIED_PERMISSIONS: Int = -2
+    private val requestPermissions = RequestPermissions(context)
 
-public class LocationInfo implements LocationCallback {
-    private static final String LOCATION_NOT_FOUND = "Location not found";
-    private static final String NETWORK_LOCATION_NOT_FOUND = "Network location not found";
-    private static final String GPS_LOCATION_NOT_FOUND = "GPS location not found";
-    private static final String ERROR_RETRIEVING_LOCATION = "Error retrieving location";
-    public final int DENIED_PERMISSIONS = -2;
-    private final Context context;
-    private final RequestPermissions requestPermissions;
-    private String currentLocation;
-    private String approximateLocation;
-    public LocationInfo(Context context) {
-        this.context = context;
-        this.requestPermissions = new RequestPermissions(context);
-    }
-
-    public String getCurrentLocation() {
-        return currentLocation;
-    }
-
-    public void setCurrentLocation(String currentLocation) {
-        this.currentLocation = currentLocation;
-    }
-    public String getApproximateLocation() {
-        return approximateLocation;
-    }
-    public void setApproximateLocation(String approximateLocation) {
-        this.approximateLocation = approximateLocation;
-    }
-
-    public void retrieveLocation(boolean dontAskAgain, boolean dontAskAgainDenied, LocationCallback callback) {
-        if (requestPermissions.hasLocationPermissions()) {
-            try {
-                getLocation(callback, dontAskAgain, dontAskAgainDenied);
-            } catch (Exception e) {
-                // Handle exceptions centrally (e.g., log the error, inform the user)
-                e.printStackTrace();
-                callback.onLocationFailed("Location retrieval failed: " + e.getMessage());
-            }
-        } else if (!dontAskAgain) {
-            requestPermissions.showPermissionDeniedWarning();
-        } else if (!dontAskAgainDenied) {
-            requestPermissions.requestLocationPermissionsDialog();
-        } else {
-            callback.onLocationFailed(LOCATION_NOT_FOUND);
-        }
-    }
+    @JvmField
+    var currentLocation: String? = null
+    @JvmField
+    var approximateLocation: String? = null
 
     @SuppressLint("MissingPermission")
-    private void getLocation(LocationCallback callback, boolean dontAskAgain, boolean dontAskAgainDenied) {
-        AtomicReference<String> errorMessage = new AtomicReference<>("All in order");
-        CompletableFuture<LocationManager> locationManagerFuture = CompletableFuture.supplyAsync(() ->
-                (LocationManager) context.getSystemService(Context.LOCATION_SERVICE));
+    fun locationFlow() = callbackFlow<Location> {
+        val errorMessage = AtomicReference("All in order")
+        val locationManagerFuture = CompletableFuture.supplyAsync {
+            context.getSystemService(
+                Context.LOCATION_SERVICE) as LocationManager
+        }
         if (requestPermissions.hasLocationPermissions()) {
-            locationManagerFuture.thenAccept(locationManager -> {
+            locationManagerFuture.thenAccept { locationManager ->
                 if (locationManager != null) {
-                    //Location source: gps
-                    CompletableFuture<Location> gpsLocationFuture = new CompletableFuture<>();
-                    locationManager.requestSingleUpdate(LocationManager.GPS_PROVIDER,
-                            gpsLocationFuture::complete,
-                            context.getMainLooper());
-                    //Location source: network
-                    CompletableFuture<Location> networkLocationFuture = new CompletableFuture<>();
-                    locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER,
-                            networkLocationFuture::complete,
-                            context.getMainLooper());
-                    boolean exception = false;
-                    try {
-                        Location networkLocation = networkLocationFuture.get();
-                        Location gpsLocation = gpsLocationFuture.get(10, TimeUnit.SECONDS);
-                        if (gpsLocation != null) {
-                            // Update location with GPS if received within timeout
-                            double latitude = gpsLocation.getLatitude();
-                            double longitude = gpsLocation.getLongitude();
-                            setCurrentLocation(latitude + ", " + longitude);
-                            callback.onLocationSuccess(getCurrentLocation());
-                            return; // Exit the thenAccept block if GPS location is obtained
-                        } else {
-                            setCurrentLocation(LOCATION_NOT_FOUND);
-                            callback.onLocationFailed(GPS_LOCATION_NOT_FOUND);
+                    val gpsLocationFuture = CompletableFuture<Location>()
+                    locationManager.requestSingleUpdate(
+                        LocationManager.GPS_PROVIDER,
+                        gpsLocationFuture::complete,
+                        context.mainLooper)
+
+                    val networkLocationFuture = CompletableFuture<Location>()
+                    locationManager.requestSingleUpdate(
+                        LocationManager.NETWORK_PROVIDER,
+                        networkLocationFuture::complete,
+                        context.mainLooper)
+                    var exeption = false;
+                    try{
+                        val networkLocation = networkLocationFuture.get(10, TimeUnit.SECONDS)
+                        val gpsLocation = gpsLocationFuture.get(10, TimeUnit.SECONDS)
+                        when {
+                            gpsLocation != null -> {
+                                currentLatitudeGPS = gpsLocation.latitude
+                                currentLongitudeGPS = gpsLocation.longitude
+                                trySend(Location(gpsLocation.provider))
+                                currentLocation = "$currentLatitudeGPS, $currentLongitudeGPS"
+                                return@thenAccept
+                            }
+                            networkLocation != null -> {
+                                currentLongitudeNetwork = networkLocation.longitude
+                                currentLatitudeNetwork = networkLocation.latitude
+                                trySend(Location(networkLocation.provider))
+                                currentLocation = "$currentLatitudeNetwork, $currentLongitudeNetwork"
+                                return@thenAccept
+                            }
+
+                            else -> {
+                                client = OkHttpClient()
+                                val request: Request = Request.Builder().url(apiUrl).build()
+                                try {
+                                    var responseData: String
+                                    client.newCall(request).execute().use { response ->
+                                        if (!response.isSuccessful) throw IOException("Unexpected code $response")
+                                        if (response.code == 401) throw AuthenticationException("Unauthorized API request")
+                                        checkNotNull(response.body)
+                                        responseData = response.body!!.string()
+                                    }
+                                    val locationInfo = JSONObject(responseData)
+                                    currentLongitudeApi = locationInfo.getDouble("longitude")
+                                    currentLatitudeApi = locationInfo.getDouble("latitude")
+                                } catch (e: JSONException) {
+                                    throw RuntimeException(e.toString())
+                                } catch (e: IOException) {
+                                    throw RuntimeException(e.toString())
+                                } catch (e: AuthenticationException) {
+                                    throw RuntimeException(e.toString())
+                                }
+                            }
                         }
-                        if (networkLocation!=null){
-                            double latitude = networkLocation.getLatitude();
-                            double longitude = networkLocation.getLongitude();
-                            setApproximateLocation(latitude + ", " + longitude);
-                            callback.onApproxLocationSuccess(getApproximateLocation());
-                        }else{
-                            callback.onApproxLocationFailed(NETWORK_LOCATION_NOT_FOUND);
-                            setApproximateLocation(LOCATION_NOT_FOUND);
-                        }
-                    } catch (TimeoutException | InterruptedException | ExecutionException e) {
-                        errorMessage.set(ERROR_RETRIEVING_LOCATION + e.getMessage());
-                        exception =true;
-                    } finally {
-                        if (exception) {
-                            callback.onLocationRetrievalException(errorMessage.get());
+                    }catch (e: Exception){
+                        errorMessage.set("Error retrieving location: ${e.message}")
+                        exeption = true
+                    }finally {
+                        if(exeption){
+                            close(Exception(errorMessage.get()))
                         }
                     }
                 }
-            }).exceptionally(e -> {
-                callback.onLocationFailed(e.getMessage());
-                return null;
-            });
+            }.exceptionally {
+                close(Exception(it.message))
+                null
+            }
         }
-    }
-
-    public void onLocationSuccess(String location) {
-
-    }
-
-    public void onApproxLocationSuccess(String location) {
+        awaitClose{
+            client.dispatcher.executorService.shutdown()
+        }
 
     }
 
-    public void onLocationFailed(String error) {
+//    fun retrieveLocation(
+//        dontAskAgain: Boolean,
+//        dontAskAgainDenied: Boolean,
+//        callback: LocationCallbackDeprecated
+//    ) {
+//        if (requestPermissions.hasLocationPermissions()) {
+//            try {
+//                getLocation(callback, dontAskAgain, dontAskAgainDenied)
+//            } catch (e: Exception) {
+//                // Handle exceptions centrally (e.g., log the error, inform the user)
+//                e.printStackTrace()
+//                callback.onLocationFailed("Location retrieval failed: " + e.message)
+//            }
+//        } else if (!dontAskAgain) {
+//            requestPermissions.showPermissionDeniedWarning()
+//        } else if (!dontAskAgainDenied) {
+//            requestPermissions.requestLocationPermissionsDialog()
+//        } else {
+//            callback.onLocationFailed(LOCATION_NOT_FOUND)
+//        }
+//    }
+//
+//    @SuppressLint("MissingPermission")
+//    private fun getLocation(
+//        callback: LocationCallbackDeprecated,
+//        dontAskAgain: Boolean,
+//        dontAskAgainDenied: Boolean
+//    ) {
+//        val errorMessage = AtomicReference("All in order")
+//        val locationManagerFuture = CompletableFuture.supplyAsync {
+//            context.getSystemService(
+//                Context.LOCATION_SERVICE
+//            ) as LocationManager
+//        }
+//        if (requestPermissions.hasLocationPermissions()) {
+//            locationManagerFuture.thenAccept { locationManager: LocationManager? ->
+//                if (locationManager != null) {
+//                    //Location source: gps
+//                    val gpsLocationFuture = CompletableFuture<Location>()
+//                    locationManager.requestSingleUpdate(
+//                        LocationManager.GPS_PROVIDER,
+//                        LocationListener { value: Location -> gpsLocationFuture.complete(value) },
+//                        context.mainLooper
+//                    )
+//                    //Location source: network
+//                    val networkLocationFuture = CompletableFuture<Location>()
+//                    locationManager.requestSingleUpdate(
+//                        LocationManager.NETWORK_PROVIDER,
+//                        LocationListener { value: Location -> networkLocationFuture.complete(value) },
+//                        context.mainLooper
+//                    )
+//                    var exception = false
+//                    try {
+//                        val networkLocation = networkLocationFuture.get()
+//                        val gpsLocation = gpsLocationFuture[10, TimeUnit.SECONDS]
+//                        if (gpsLocation != null) {
+//                            // Update location with GPS if received within timeout
+//                            val latitude = gpsLocation.latitude
+//                            val longitude = gpsLocation.longitude
+//                            currentLocation = "$latitude, $longitude"
+//                            callback.onLocationSuccess(currentLocation)
+//                            return@thenAccept  // Exit the thenAccept block if GPS location is obtained
+//                        } else {
+//                            currentLocation = LOCATION_NOT_FOUND
+//                            callback.onLocationFailed(GPS_LOCATION_NOT_FOUND)
+//                        }
+//                        if (networkLocation != null) {
+//                            val latitude = networkLocation.latitude
+//                            val longitude = networkLocation.longitude
+//                            approximateLocation = "$latitude, $longitude"
+//                            callback.onApproxLocationSuccess(approximateLocation)
+//                        } else {
+//                            callback.onApproxLocationFailed(NETWORK_LOCATION_NOT_FOUND)
+//                            approximateLocation = LOCATION_NOT_FOUND
+//                        }
+//                    } catch (e: TimeoutException) {
+//                        errorMessage.set(ERROR_RETRIEVING_LOCATION + e.message)
+//                        exception = true
+//                    } catch (e: InterruptedException) {
+//                        errorMessage.set(ERROR_RETRIEVING_LOCATION + e.message)
+//                        exception = true
+//                    } catch (e: ExecutionException) {
+//                        errorMessage.set(ERROR_RETRIEVING_LOCATION + e.message)
+//                        exception = true
+//                    } finally {
+//                        if (exception) {
+//                            callback.onLocationRetrievalException(errorMessage.get())
+//                        }
+//                    }
+//                }
+//            }.exceptionally { e: Throwable ->
+//                callback.onLocationFailed(e.message)
+//                null
+//            }
+//        }
+//    }
+//
+//     fun onLocationSuccess(location: String) {
+//    }
+//
+//     fun onApproxLocationSuccess(location: String) {
+//    }
+//
+//     fun onLocationFailed(error: String) {
+//    }
+//
+//     fun onApproxLocationFailed(error: String) {
+//    }
+//
+//     fun onLocationRetrievalException(e: String) {
+//    }
 
+    companion object {
+        private const val LOCATION_NOT_FOUND = "Location not found"
+        private const val NETWORK_LOCATION_NOT_FOUND = "Network location not found"
+        private const val GPS_LOCATION_NOT_FOUND = "GPS location not found"
+        private const val ERROR_RETRIEVING_LOCATION = "Error retrieving location"
     }
-
-    public void onApproxLocationFailed(String error) {
-
-    }
-
-    public void onLocationRetrievalException(String e) {
-
-    }
-
 }

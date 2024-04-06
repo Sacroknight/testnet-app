@@ -3,7 +3,6 @@ package com.qos.testnet.utils.networkInformation;
 
 
 import com.google.firebase.crashlytics.buildtools.reloc.org.apache.http.auth.AuthenticationException;
-import com.qos.testnet.utils.deviceInformation.LocationCallback;
 
 import org.json.JSONArray;
 import org.json.JSONException;

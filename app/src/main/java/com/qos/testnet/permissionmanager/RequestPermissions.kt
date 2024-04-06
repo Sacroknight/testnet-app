@@ -1,151 +1,150 @@
-package com.qos.testnet.permissionmanager;
+package com.qos.testnet.permissionmanager
 
-import android.Manifest;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.os.Build;
+import android.Manifest
+import android.app.Activity
+import android.app.AlertDialog
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.qos.myapplication.R
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
+class RequestPermissions(private val context: Context) {
+    private val permissionPreferences: PermissionPreferences by lazy { PermissionPreferences.getInstance() }
 
-import com.qos.myapplication.R;
-
-public class RequestPermissions {
-    public final int REQUEST_LOCATION_PERMISSION = 0001;
-    private final Context context;
-    private final int REQUEST_READ_PHONE_PERMISSION = 0010;
-
-
-    public RequestPermissions(Context context) {
-        this.context = context;
-    }
-
-    public boolean hasLocationPermissions() {
+    fun hasLocationPermissions(): Boolean {
         return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
     }
 
-    public boolean hasReadPhonePermissions() {
-        boolean result;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            result = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED ||
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.READ_BASIC_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
+    private fun hasReadPhonePermissions(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_PHONE_STATE
+            ) == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.READ_BASIC_PHONE_STATE
+                    ) == PackageManager.PERMISSION_GRANTED
         } else {
-            result = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_PHONE_STATE
+            ) == PackageManager.PERMISSION_GRANTED
         }
-        return result;
     }
 
-    public boolean hasAllNecessaryPermissions() {
+    fun hasAllNecessaryPermissions(): Boolean {
+        return hasLocationPermissions() && hasReadPhonePermissions()
+    }
+
+    private fun requestLocationPermissions() {
+        ActivityCompat.requestPermissions(
+            (context as Activity), arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ), REQUEST_LOCATION_PERMISSION
+        )
+    }
+
+    private fun requestReadPhonePermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return hasLocationPermissions() && hasReadPhonePermissions();
+            ActivityCompat.requestPermissions(
+                (context as Activity), arrayOf(
+                    Manifest.permission.READ_PHONE_STATE,
+                    Manifest.permission.READ_BASIC_PHONE_STATE
+                ), REQUEST_READ_PHONE_PERMISSION
+            )
         } else {
-            return hasLocationPermissions() &&
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED;
+            ActivityCompat.requestPermissions(
+                (context as Activity),
+                arrayOf(Manifest.permission.READ_PHONE_STATE),
+                REQUEST_READ_PHONE_PERMISSION
+            )
         }
     }
 
-    private void requestLocationPermissions(int requestCode) {
-        ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION}, requestCode);
+    fun requestLocationPermissionsDialog() {
+        val toppings = arrayOf(context.getString(R.string.dont_Ask_Again))
+        val checkedItems = 0
+        AlertDialog.Builder(context)
+            .setTitle(context.getString(R.string.request_Location))
+            .setMessage(context.getString(R.string.request_Location_Dialog))
+            .setSingleChoiceItems(toppings, checkedItems) { _, which ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    permissionPreferences.savePermissionPreference(
+                        context,
+                        PermissionPreferences.PermissionPreferencesKeys.DONT_ASK_AGAIN_LOCATION_PERMISSION,
+                        which == 0
+                    )
+                }
+            }
+            .setPositiveButton(context.getString(R.string.grant_Permission)) { _, _ ->
+                requestLocationPermissions()
+            }
+            .setNegativeButton(context.getString(R.string.continue_Without_Permission)) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 
-    public void requestLocationPermissionsDialog() {
-        String[] toppings = {context.getString(R.string.dont_Ask_Again)};
-        boolean[] checkedItems = {false};
-        new AlertDialog.Builder(context).setTitle(context.getString(R.string.request_Location))
-                .setMessage(context.getString(R.string.request_Location_Dialog))
-                .setMultiChoiceItems(toppings, checkedItems, (dialog, which, isChecked) -> {
-                    if (isChecked) {
-                        SharedPreferences sharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.putBoolean("dontAskAgain", true);
-                        editor.apply();
-                    }
-                })
-                .setPositiveButton(context.getString(R.string.grant_Permission), (dialog, which) ->
-                        requestLocationPermissions(REQUEST_LOCATION_PERMISSION)).
-                setNegativeButton(context.getString(R.string.continue_Without_Permission), (dialog, which) -> dialog.dismiss()).
-                show();
+    fun requestAllPermissionsDialog() {
+        AlertDialog.Builder(context).setTitle(context.getString(R.string.permissions_Needed))
+            .setMessage(context.getString(R.string.permissions_Needed_Dialog))
+            .setPositiveButton(context.getString(R.string.grant_Permission)) { _, _ ->
+                requestLocationPermissions()
+                requestReadPhonePermissions()
+            }
+            .setNegativeButton(context.getString(R.string.continue_Without_Permission)) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 
-    private void requestReadPhonePermissions(int requestCode) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.READ_PHONE_STATE,
-                    Manifest.permission.READ_BASIC_PHONE_STATE}, requestCode);
-        } else {
-            ActivityCompat.requestPermissions((Activity) context, new String[]{Manifest.permission.READ_PHONE_STATE}, requestCode);
-        }
-    }
+    fun showPermissionDeniedWarning() {
+        val toppings = arrayOf(context.getString(R.string.dont_Ask_Again))
+        val checkedItems = 0
 
-    private void requestReadPhonePermissionsDialog(int requestCode) {
-        String[] toppings = {context.getString(R.string.dont_Ask_Again)};
-        boolean[] checkedItems = {false};
-        new AlertDialog.Builder(context).setTitle(context.getString(R.string.request_Phone_Permission))
-                .setMessage(context.getString(R.string.request_Phone_Dialog))
-                .setMultiChoiceItems(toppings, checkedItems, (dialog, which, isChecked) -> {
-                    if (isChecked) {
-                        SharedPreferences sharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.putBoolean("dontAskAgain", true);
-                        editor.apply();
-                    }
-                })
-                .setPositiveButton(context.getString(R.string.grant_Permission), (dialog, which) ->
-                        requestReadPhonePermissions(REQUEST_READ_PHONE_PERMISSION))
-                .setNegativeButton(context.getString(R.string.continue_Without_Permission), (dialog, which) -> dialog.dismiss()).
-                show();
-    }
-
-    private void requestAllPermissions() {
-        new AlertDialog.Builder(context).setTitle(context.getString(R.string.permissions_Needed))
-                .setMessage(context.getString(R.string.permissions_Needed_Dialog))
-                .setPositiveButton(context.getString(R.string.grant_Permission), (dialog, which) -> {
-                    requestLocationPermissions(REQUEST_LOCATION_PERMISSION);
-                    requestReadPhonePermissions(REQUEST_LOCATION_PERMISSION);
-                })
-                .setNegativeButton(context.getString(R.string.continue_Without_Permission), (dialog, which) -> dialog.dismiss()).
-                show();
-    }
-
-    public void checkAndRequestPermission() {
-        if (!hasAllNecessaryPermissions()) {
-            requestAllPermissions();
-        }
-    }
-
-    public void showPermissionDeniedWarning() {
-        String[] toppings = {context.getString(R.string.dont_Ask_Again)};
-        boolean[] checkedItems = {false};
-        new AlertDialog.Builder(context)
-                .setTitle("Permission Warning")
-                .setMessage("Cell information retrieval requires location permission. " +
+        AlertDialog.Builder(context)
+            .setTitle("Permission Warning")
+            .setMessage(
+                "Cell information retrieval requires location permission. " +
                         "Test results will have lower precision without it. " +
-                        "The experiment can still be conducted.").setMultiChoiceItems(toppings, checkedItems, (dialog, which, isChecked) -> {
-                    if (isChecked) {
-                        SharedPreferences sharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.putBoolean("dontAskAgainDenied", true);
-                        editor.apply();
-                    }
-                })
-                .setPositiveButton("Continue", (dialog, which) -> dialog.dismiss())
-                .setNegativeButton("Grant Permissions", ((dialog, which) -> {
-                    dialog.dismiss();
-                    if (!hasAllNecessaryPermissions()) {
-                        requestLocationPermissions(REQUEST_LOCATION_PERMISSION);
-                        requestReadPhonePermissions(REQUEST_READ_PHONE_PERMISSION);
-                    } else if (!hasLocationPermissions()) {
-                        requestLocationPermissions(REQUEST_LOCATION_PERMISSION);
-                    } else if (!hasReadPhonePermissions()) {
-                        requestReadPhonePermissions(REQUEST_READ_PHONE_PERMISSION);
-                    }
-                }))// Optionally, close app if user wants
-                .show();
+                        "The experiment can still be conducted."
+            )
+            .setSingleChoiceItems(toppings, checkedItems) { _, which ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    val dontAskAgain = which == 0
+                    permissionPreferences.savePermissionPreference(
+                        context,
+                        PermissionPreferences.PermissionPreferencesKeys.DONT_ASK_AGAIN_LOCATION_PERMISSION,
+                        dontAskAgain
+                    )
+                    permissionPreferences.savePermissionPreference(
+                        context,
+                        PermissionPreferences.PermissionPreferencesKeys.DONT_ASK_AGAIN_PHONE_PERMISSION,
+                        dontAskAgain
+                    )
+                }
+            }
+            .setPositiveButton("Continue") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setNegativeButton("Grant Permissions") { dialog, _ ->
+                dialog.dismiss()
+                requestLocationPermissions()
+                requestReadPhonePermissions()
+            }
+            .show()
     }
 
-
+    companion object {
+        const val REQUEST_LOCATION_PERMISSION: Int = 101
+        const val REQUEST_READ_PHONE_PERMISSION: Int = 108
+    }
 }

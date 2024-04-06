@@ -1,6 +1,6 @@
 package com.qos.testnet.utils.deviceInformation;
 
-public interface LocationCallback {
+public interface LocationCallbackDeprecated {
     void onLocationSuccess(String location);
 
     void onApproxLocationSuccess(String location);

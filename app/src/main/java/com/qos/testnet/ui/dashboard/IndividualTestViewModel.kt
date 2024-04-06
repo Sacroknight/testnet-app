@@ -1,19 +1,19 @@
-package com.qos.testnet.ui.dashboard;
+package com.qos.testnet.ui.dashboard
 
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import com.qos.testnet.utils.networkInformation.IperfJNI
 
-public class IndividualTestViewModel extends ViewModel {
+class IndividualTestViewModel : ViewModel() {
+    private val iperfJNI = IperfJNI()
+    private val _testResults = MutableLiveData<String>()
+    private val mText = MutableLiveData<String>()
 
-    private final MutableLiveData<String> mText;
-
-    public IndividualTestViewModel() {
-        mText = new MutableLiveData<>();
-        mText.setValue("This is dashboard fragment");
+    init {
+        mText.value = "This is dashboard fragment"
     }
 
-    public LiveData<String> getText() {
-        return mText;
-    }
+    val text: LiveData<String>
+        get() = mText
 }

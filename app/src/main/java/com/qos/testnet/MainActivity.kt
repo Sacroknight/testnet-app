@@ -1,51 +1,59 @@
-package com.qos.testnet;
+package com.qos.testnet
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Bundle;
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.navigation.Navigation
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.NavigationUI
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.qos.myapplication.R
+import com.qos.myapplication.databinding.ActivityMainBinding
+import com.qos.testnet.permissionmanager.PermissionPreferences
+import com.qos.testnet.permissionmanager.RequestPermissions
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
+class MainActivity : AppCompatActivity() {
+    private var binding: ActivityMainBinding? = null
+    private var requestPermissions: RequestPermissions? = null
+    private val permissionPreferences: PermissionPreferences by lazy { PermissionPreferences.getInstance() }
 
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.qos.myapplication.R;
-import com.qos.myapplication.databinding.ActivityMainBinding;
-import com.qos.testnet.permissionmanager.RequestPermissions;
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding!!.root)
 
-public class MainActivity extends AppCompatActivity {
+        requestPermissions = RequestPermissions(this)
 
-    private ActivityMainBinding binding;
-    private RequestPermissions requestPermissions;
+        CoroutineScope(Dispatchers.Main).launch {
+            val permissionsRequested = permissionPreferences.getPermissionPreference(
+                this@MainActivity,
+                PermissionPreferences.PermissionPreferencesKeys.ASK_OPEN_PERMISSION
+            )
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
+            if (!permissionsRequested) {
+                requestPermissions?.requestAllPermissionsDialog()
 
-        super.onCreate(savedInstanceState);
-        requestPermissions = new RequestPermissions(this);
-        SharedPreferences sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
-        boolean permissionsRequested = sharedPreferences.getBoolean("permissionsRequested", false);
-
-        binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-        if(!permissionsRequested){
-            requestPermissions.checkAndRequestPermission();
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putBoolean("permissionsRequested", true);
-            editor.apply();
+                permissionPreferences.savePermissionPreference(
+                    this@MainActivity,
+                    PermissionPreferences.PermissionPreferencesKeys.ASK_OPEN_PERMISSION, true
+                )
+            }
         }
 
-        BottomNavigationView navView = findViewById(R.id.nav_view);
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_notifications)
-                .build();
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main);
-        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-        NavigationUI.setupWithNavController(binding.navView, navController);
-    }
+        val navView = findViewById<BottomNavigationView>(R.id.nav_view)
+        val navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main)
 
+        val appBarConfiguration = AppBarConfiguration(
+            setOf(
+                R.id.navigation_home,
+                R.id.navigation_dashboard,
+                R.id.navigation_notifications
+            )
+        )
+
+        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration)
+        NavigationUI.setupWithNavController(navView, navController)
+    }
 }

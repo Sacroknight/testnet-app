@@ -42,7 +42,7 @@ public class HomeFragment extends Fragment {
                 -> binding.instantMeasurements.setText(s));
 
         // Observe the changes on the button and update the UI accordingly
-        HomeViewModel.isFinished().observe(getViewLifecycleOwner(), testFinished
+        HomeViewModel.isFinished.observe(getViewLifecycleOwner(), testFinished
                 -> binding.startButton.setEnabled(testFinished));
 
         // Observe the device info and update the UI accordingly
