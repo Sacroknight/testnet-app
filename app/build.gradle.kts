@@ -33,6 +33,11 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs") // Ruta donde se encuentran los archivos binarios
+        }
+    }
 }
 
 dependencies {
@@ -55,7 +60,6 @@ dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.databinding:databinding-runtime:8.3.1")
     testImplementation("junit:junit:4.13.2")
-
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
 }

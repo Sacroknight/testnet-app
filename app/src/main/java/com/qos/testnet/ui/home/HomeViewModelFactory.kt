@@ -1,25 +1,23 @@
-package com.qos.testnet.ui.home;
+package com.qos.testnet.ui.home
 
-import androidx.annotation.NonNull;
-import androidx.lifecycle.ViewModel;
-import androidx.lifecycle.ViewModelProvider;
-import android.content.Context;
+import android.content.Context
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.qos.testnet.ui.home.HomeViewModel
 
+@Suppress("UNCHECKED_CAST")
+class HomeViewModelFactory(context: Context?) : ViewModelProvider.Factory {
+    private var context: Context? = null
 
-public class HomeViewModelFactory implements ViewModelProvider.Factory {
-    private Context context = null;
-
-    public HomeViewModelFactory(Context context) {
-        this.context = context;
+    init {
+        this.context = context
     }
 
-    @NonNull
-    @Override
-    public <T extends ViewModel> T create(Class<T> modelClass) {
-        if (modelClass.isAssignableFrom(HomeViewModel.class) && modelClass == HomeViewModel.class) {
-            return (T) new HomeViewModel(context);
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(HomeViewModel::class.java) && modelClass == HomeViewModel::class.java) {
+            return HomeViewModel(context!!) as T
         } else {
-            throw new IllegalArgumentException("Unknown ViewModel class");
+            throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 }

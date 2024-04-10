@@ -5,6 +5,7 @@ import android.content.Context
 import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -17,7 +18,9 @@ import com.qos.testnet.utils.deviceInformation.DeviceInformation
 import com.qos.testnet.utils.deviceInformation.LocationInfo
 import com.qos.testnet.utils.networkInformation.GetBetterHost
 import com.qos.testnet.utils.networkInformation.NetworkCallback
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeoutException
 
 /**
  * The Home view model
@@ -47,6 +50,12 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
     private fun startLocationRetrieval() {
         viewModelScope.launch {
             locationInfo.locationFlow()
+                .catch { exception ->
+                    if (exception is TimeoutException) {
+                        getBestHostApiAndStartTasks()
+                        Log.e("LocationFlow", "TimeoutException occurred: ${exception.message}")
+                    }
+                }
                 .collect { location ->
                     // Manejar la ubicación obtenida
                     when (location.provider) {
@@ -74,7 +83,6 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
 
         }
     }
-
     /**
      * Start ping and jitter test
      */
@@ -176,17 +184,17 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
      */
     private fun getDeviceInformation(): String {
         return """Manufacturer: ${deviceInformation.manufacturer}
-            Model: ${deviceInformation.model}
-            Android Version: ${deviceInformation.androidVersion}
-            Actual Location: ${locationInfo.currentLatitudeGPS} , ${locationInfo.currentLongitudeGPS}
-            Approximate Location: ${locationInfo.currentLongitudeNetwork} , ${locationInfo.currentLatitudeNetwork}
-            Api Location: ${locationInfo.currentLongitudeApi} , ${locationInfo.currentLatitudeApi}
-            Signal Strength: ${deviceInformation.carrier} ${deviceInformation.signalStrength} dBm
-            Current Host: ${pingAndJitterTest.currentHost}
-            Ping: ${pingAndJitterTest.pingMeasured} ms
-            Jitter: ${pingAndJitterTest.jitterMeasured} ms
-            Best server: ${getBetterHost.getUrlAddress()}
-            Download Speed: ${downloadSpeedTest.finalDownloadSpeed} Mb/s"""
+            |Model: ${deviceInformation.model}
+            |Android Version: ${deviceInformation.androidVersion}
+            |Actual Location: ${locationInfo.currentLatitudeGPS} , ${locationInfo.currentLongitudeGPS}
+            |Approximate Location: ${locationInfo.currentLongitudeNetwork} , ${locationInfo.currentLatitudeNetwork}
+            |Api Location: ${locationInfo.currentLongitudeApi} , ${locationInfo.currentLatitudeApi}
+            |Signal Strength: ${deviceInformation.carrier} ${deviceInformation.signalStrength} dBm
+            |Current Host: ${pingAndJitterTest.currentHost}
+            |Ping: ${pingAndJitterTest.pingMeasured} ms
+            |Jitter: ${pingAndJitterTest.jitterMeasured} ms
+            |Best server: ${getBetterHost.getUrlAddress()}
+            |Download Speed: ${downloadSpeedTest.finalDownloadSpeed} Mb/s""".trimMargin()
     }
 
     /**
@@ -219,6 +227,10 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
             networkCallback
         )
     }
+    private fun getBestHostApi(){
+        getBetterHost.getBestHost(deviceInformation.carrier,
+            networkCallback)
+    }
 
     /**
      * Initiates a new thread to asynchronously determine the best host for conducting network tests,
@@ -246,7 +258,14 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
             }, 100)
         }.start()
     }
-
+    private fun getBestHostApiAndStartTasks(){
+        Thread {
+            getBestHostApi()
+            Handler(Looper.getMainLooper()).postDelayed({
+                startPingAndJitterTest()
+            }, 100)
+        }
+    }
 
     companion object {
         @JvmStatic

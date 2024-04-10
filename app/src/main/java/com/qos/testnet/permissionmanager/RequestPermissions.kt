@@ -94,18 +94,17 @@ class RequestPermissions(private val context: Context) {
     }
 
     fun requestAllPermissionsDialog() {
-        AlertDialog.Builder(context).setTitle(context.getString(R.string.permissions_Needed))
-            .setMessage(context.getString(R.string.permissions_Needed_Dialog))
-            .setPositiveButton(context.getString(R.string.grant_Permission)) { _, _ ->
-                requestLocationPermissions()
-                requestReadPhonePermissions()
-            }
-            .setNegativeButton(context.getString(R.string.continue_Without_Permission)) { dialog, _ ->
-                dialog.dismiss()
-            }
-            .show()
+            AlertDialog.Builder(context).setTitle(context.getString(R.string.permissions_Needed))
+                .setMessage(context.getString(R.string.permissions_Needed_Dialog))
+                .setPositiveButton(context.getString(R.string.grant_Permission)) { _, _ ->
+                    requestLocationPermissions()
+                    requestReadPhonePermissions()
+                }
+                .setNegativeButton(context.getString(R.string.continue_Without_Permission)) { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .show()
     }
-
     fun showPermissionDeniedWarning() {
         val toppings = arrayOf(context.getString(R.string.dont_Ask_Again))
         val checkedItems = 0
@@ -144,7 +143,7 @@ class RequestPermissions(private val context: Context) {
     }
 
     companion object {
-        const val REQUEST_LOCATION_PERMISSION: Int = 101
-        const val REQUEST_READ_PHONE_PERMISSION: Int = 108
+        const val REQUEST_LOCATION_PERMISSION: Int = 69
+        const val REQUEST_READ_PHONE_PERMISSION: Int = 88
     }
 }
