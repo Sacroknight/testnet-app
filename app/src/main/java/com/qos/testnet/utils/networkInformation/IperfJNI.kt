@@ -11,7 +11,7 @@ class IperfJNI {
     companion object {
         init {
             try {
-                System.loadLibrary("Iperf")
+                System.loadLibrary("com.qos.testnet.utils.iperf.Iperf")
             } catch (e: UnsatisfiedLinkError) {
                 // Manejar cualquier error de carga de la biblioteca nativa
                 println("Error loading native library: ${e.message}")

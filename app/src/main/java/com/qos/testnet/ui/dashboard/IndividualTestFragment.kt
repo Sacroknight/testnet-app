@@ -25,8 +25,12 @@ class IndividualTestFragment : Fragment() {
         individualTestViewModel.text.observe(viewLifecycleOwner) { text: CharSequence? ->
             textView.text = text
         }
+        binding!!.buttonIperf.setOnClickListener{
+            individualTestViewModel.iperfProbe()
+        }
         return root
     }
+
 
     override fun onDestroyView() {
         super.onDestroyView()
