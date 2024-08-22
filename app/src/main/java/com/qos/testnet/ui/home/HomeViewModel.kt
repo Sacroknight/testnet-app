@@ -20,7 +20,6 @@ import com.qos.testnet.utils.networkInformation.GetBetterHost
 import com.qos.testnet.utils.networkInformation.NetworkCallback
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeoutException
 
 /**
  * The Home view model
@@ -40,7 +39,6 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
 
     private var dontAskAgain = false
     private var dontAskAgainDenied = false
-    private var success: Boolean = false
 
     private var currentLocation: String? = null
 
@@ -49,38 +47,33 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
      */
     private fun startLocationRetrieval() {
         viewModelScope.launch {
-            locationInfo.locationFlow()
+            locationInfo.locationFlow(context)
                 .catch { exception ->
-                    if (exception is TimeoutException) {
-                        getBestHostApiAndStartTasks()
-                        Log.e("LocationFlow", "TimeoutException occurred: ${exception.message}")
-                    }
+                    getBestHostApiAndStartTasks()
+                    Log.e("LocationFlow", "Exception occurred: ${exception.message}")
                 }
                 .collect { location ->
-                    // Manejar la ubicación obtenida
                     when (location.provider) {
                         LocationManager.GPS_PROVIDER -> {
                             // Ubicación GPS obtenida
-                            currentLocation =
-                                "${locationInfo.currentLatitudeGPS} , ${locationInfo.currentLongitudeGPS}"
+                            locationInfo.currentLatitudeGPS = location.latitude
+                            locationInfo.currentLongitudeGPS = location.longitude
+                            currentLocation = "${locationInfo.currentLatitudeGPS}, ${locationInfo.currentLongitudeGPS}"
                             getBestHostAndStartTasks()
                         }
 
                         LocationManager.NETWORK_PROVIDER -> {
                             // Ubicación de red obtenida
-                            currentLocation =
-                                "${locationInfo.currentLatitudeNetwork} , ${locationInfo.currentLongitudeNetwork}"
+                            locationInfo.currentLatitudeNetwork = location.latitude
+                            locationInfo.currentLongitudeNetwork = location.longitude
+                            currentLocation = "${locationInfo.currentLatitudeNetwork}, ${locationInfo.currentLongitudeNetwork}"
                             getBestHostAndStartTasks()
                         }
 
                         else -> {
-                            currentLocation =
-                                "${locationInfo.currentLongitudeApi} , ${locationInfo.currentLatitudeApi}"
-                            getBestHostAndStartTasks()
-                        }
+                            getBestHostApiAndStartTasks()                        }
                     }
                 }
-
         }
     }
     /**
@@ -222,7 +215,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
 
     private fun getBestHost() {
         getBetterHost.getBestHost(
-            locationInfo.currentLocation ?: "0.0,0.0",
+            currentLocation,
             deviceInformation.carrier ?: "Carrier NULL",
             networkCallback
         )

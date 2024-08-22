@@ -1,16 +1,18 @@
+package com.qos.testnet.utils.iperf
+
 import java.io.*
 
-object Iperf {
+class Iperf {
 
     // Método para copiar el archivo binario de iperf3 según la arquitectura
     @Throws(IOException::class)
     fun copyIperfBinary(architecture: String) {
         // Determinar la ruta de la carpeta correspondiente a la arquitectura
         val folderName = when (architecture) {
-            "armeabi-v7a" -> "armeabi-v7a"
-            "arm64-v8a" -> "arm64-v8a"
-            "x86" -> "x86"
-            "x86_64" -> "x86_64"
+            "jniLibs/armeabi-v7a" -> "jniLibs/armeabi-v7a"
+            "jniLibs/arm64-v8a" -> "jniLibs/arm64-v8a"
+            "jniLibs/x86" -> "jniLibs/x86"
+            "jniLibs/x86_64" -> "jniLibs/x86_64"
             else -> throw IllegalArgumentException("Arquitectura no compatible: $architecture")
         }
 
@@ -21,7 +23,7 @@ object Iperf {
         inputStream ?: throw IOException("Archivo iperf3 no encontrado para la arquitectura: $architecture")
 
         // Crear un archivo de salida en la ruta /data/tmp/iperf
-        val outputFile = File("/data/tmp/iperf")
+        val outputFile = File("/data/tmp/iperf3")
         val outputStream = FileOutputStream(outputFile)
 
         // Leer y escribir el contenido del archivo binario
@@ -75,24 +77,24 @@ object Iperf {
         return output.toString()
     }
 
-    @JvmStatic
-    fun main(args: Array<String>) {
-        try {
-            // Copiar el archivo binario de iperf3 para la arquitectura específica (ejemplo: arm64-v8a)
-            val architecture = "arm64-v8a" // Cambia esto según la arquitectura deseada
-            copyIperfBinary(architecture)
-
-            // Verificar si el archivo iperf3 existe en /data/tmp/
-            val iperfFile = File("/data/tmp/iperf")
-            if (!iperfFile.exists()) {
-                throw IOException("El archivo iperf3 no se ha copiado correctamente.")
-            }
-
-            // Ejecutar el comando iperf3
-            val result = executeIperfCommand("/data/tmp/iperf -c 192.168.1.100")
-            println(result)
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-    }
+//    @JvmStatic
+//    fun main(args: Array<String>) {
+//        try {
+//            // Copiar el archivo binario de iperf3 para la arquitectura específica (ejemplo: arm64-v8a)
+//            val architecture = "arm64-v8a" // Cambia esto según la arquitectura deseada
+//            copyIperfBinary(architecture)
+//
+//            // Verificar si el archivo iperf3 existe en /data/tmp/
+//            val iperfFile = File("/data/tmp/iperf")
+//            if (!iperfFile.exists()) {
+//                throw IOException("El archivo iperf3 no se ha copiado correctamente.")
+//            }
+//
+//            // Ejecutar el comando iperf3
+//            val result = executeIperfCommand("/data/tmp/iperf -c 192.168.1.100")
+//            println(result)
+//        } catch (e: IOException) {
+//            e.printStackTrace()
+//        }
+//    }
 }
