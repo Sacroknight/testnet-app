@@ -169,7 +169,7 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
                         /*
                          * The Timeout.
                          */
-                        int TIME_OUT = 30;
+                        int TIME_OUT = 15;
                         if (downloadElapsedTime >= TIME_OUT) {
                             break outer;
                         }
