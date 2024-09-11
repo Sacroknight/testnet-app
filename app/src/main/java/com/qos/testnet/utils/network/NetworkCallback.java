@@ -1,4 +1,4 @@
-package com.qos.testnet.utils.networkInformation;
+package com.qos.testnet.utils.network;
 
 public interface NetworkCallback {
     void onRequestSuccess(String response);
