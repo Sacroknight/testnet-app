@@ -1,8 +1,6 @@
 package com.qos.testnet.ui.home
 
-import android.annotation.SuppressLint
 import android.content.Context
-import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -16,11 +14,14 @@ import com.qos.testnet.tests.PingAndJitterTest
 import com.qos.testnet.tests.TestCallback
 import com.qos.testnet.utils.deviceInformation.DeviceInformation
 import com.qos.testnet.utils.deviceInformation.LocationInfo
-import com.qos.testnet.utils.networkInformation.GetBetterHost
-import com.qos.testnet.utils.networkInformation.NetworkCallback
+import com.qos.testnet.utils.network.GetBetterHost
+import com.qos.testnet.utils.network.NetworkCallback
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeoutException
+import kotlinx.coroutines.withContext
 
 /**
  * The Home view model
@@ -28,13 +29,13 @@ import java.util.concurrent.TimeoutException
  */
 class HomeViewModel(homeContext: Context) : ViewModel() {
 
-    @SuppressLint("StaticFieldLeak")
-    private val context = homeContext
+    private val context by lazy { homeContext }
     private val getBetterHost = GetBetterHost()
     private val downloadSpeedTest = DownloadSpeedTest()
     val pingAndJitterTest = PingAndJitterTest()
     private val deviceInformation = DeviceInformation(context)
     private val locationInfo = LocationInfo(context)
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
     //private val uploadSpeedStats = UploadSpeedStats()
 
@@ -49,40 +50,33 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
      */
     private fun startLocationRetrieval() {
         viewModelScope.launch {
-            locationInfo.locationFlow()
-                .catch { exception ->
-                    if (exception is TimeoutException) {
-                        getBestHostApiAndStartTasks()
-                        Log.e("LocationFlow", "TimeoutException occurred: ${exception.message}")
+            val locationResult =
+                locationInfo.locationFlow(timeout = 10000L) // 10 segundos de tiempo de espera
+                    .catch { exception ->
+                        // Log the error, no need to handle it here since the catch block below will handle all exceptions
+                        Log.e("LocationFlow", "Error occurred: ${exception.message}")
                     }
-                }
-                .collect { location ->
-                    // Manejar la ubicación obtenida
-                    when (location.provider) {
-                        LocationManager.GPS_PROVIDER -> {
-                            // Ubicación GPS obtenida
-                            currentLocation =
-                                "${locationInfo.currentLatitudeGPS} , ${locationInfo.currentLongitudeGPS}"
-                            getBestHostAndStartTasks()
-                        }
+                    .firstOrNull() // Use firstOrNull to get the location if available, or null if the flow completes without a location
 
-                        LocationManager.NETWORK_PROVIDER -> {
-                            // Ubicación de red obtenida
-                            currentLocation =
-                                "${locationInfo.currentLatitudeNetwork} , ${locationInfo.currentLongitudeNetwork}"
-                            getBestHostAndStartTasks()
-                        }
-
-                        else -> {
-                            currentLocation =
-                                "${locationInfo.currentLongitudeApi} , ${locationInfo.currentLatitudeApi}"
-                            getBestHostAndStartTasks()
-                        }
+            if (locationResult != null) {
+                // We got a location from GPS or network, handle it
+                currentLocation = "${locationResult.latitude}, ${locationResult.longitude}"
+                getBestHostAndStartTasks()
+            } else {
+                // GPS and network location failed, fallback to fetching location from API
+                try {
+                    val (latitude, longitude) = withContext(ioDispatcher) {
+                        locationInfo.fetchLocationFromApi(LocationInfo.API_URL)
                     }
+                    currentLocation = "$latitude, $longitude"
+                    getBestHostAndStartTasks()
+                } catch (e: Exception) {
+                    Log.e("LocationFlow", "Error fetching location from API: ${e.message}")
                 }
-
+            }
         }
     }
+
     /**
      * Start ping and jitter test
      */
@@ -114,7 +108,6 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
             })
         }.start()
     }
-
 
     /**
      * Start download speed test
@@ -167,7 +160,6 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         }
     }
 
-
     /**
      * new constructor
      */
@@ -186,9 +178,10 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         return """Manufacturer: ${deviceInformation.manufacturer}
             |Model: ${deviceInformation.model}
             |Android Version: ${deviceInformation.androidVersion}
-            |Actual Location: ${locationInfo.currentLatitudeGPS} , ${locationInfo.currentLongitudeGPS}
-            |Approximate Location: ${locationInfo.currentLongitudeNetwork} , ${locationInfo.currentLatitudeNetwork}
-            |Api Location: ${locationInfo.currentLongitudeApi} , ${locationInfo.currentLatitudeApi}
+            |Actual Location: $currentLocation
+            |GPS Location: ${locationInfo.currentLatitudeGPS} , ${locationInfo.currentLongitudeGPS}
+            |Approximate Location: ${locationInfo.currentLatitudeNetwork} , ${locationInfo.currentLongitudeNetwork}
+            |Api Location: ${locationInfo.currentLatitudeApi} , ${locationInfo.currentLongitudeApi}
             |Signal Strength: ${deviceInformation.carrier} ${deviceInformation.signalStrength} dBm
             |Current Host: ${pingAndJitterTest.currentHost}
             |Ping: ${pingAndJitterTest.pingMeasured} ms
@@ -227,10 +220,6 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
             networkCallback
         )
     }
-    private fun getBestHostApi(){
-        getBetterHost.getBestHost(deviceInformation.carrier,
-            networkCallback)
-    }
 
     /**
      * Initiates a new thread to asynchronously determine the best host for conducting network tests,
@@ -257,14 +246,6 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                 startPingAndJitterTest()
             }, 100)
         }.start()
-    }
-    private fun getBestHostApiAndStartTasks(){
-        Thread {
-            getBestHostApi()
-            Handler(Looper.getMainLooper()).postDelayed({
-                startPingAndJitterTest()
-            }, 100)
-        }
     }
 
     companion object {
