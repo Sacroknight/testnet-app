@@ -17,4 +17,5 @@
     <string name="continue_Without_Permission">Continue Without Permission</string>
     <string name="dont_Ask_Again">Don\'t Ask Again</string>
     <string name="downloadspeedstats_class_name">Download Speed Stats</string>
+    <string name="mega_bits_per_second">" Mb/s"</string>
 </resources>
