@@ -24,7 +24,7 @@ import okhttp3.Response;
 public class UploadSpeedStats implements InternetTest, TestCallback {
     private static final int BUFFER_SIZE = 1024 * 1024; // 1 MB
     private static final int THREAD_COUNT = 4;
-    private static final int ITERATIONS = 128;
+    private static final int ITERATIONS = 100;
     /**
      * The Start time.
      */

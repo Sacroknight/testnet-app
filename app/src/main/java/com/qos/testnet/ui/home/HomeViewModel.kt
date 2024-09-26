@@ -12,6 +12,7 @@ import com.qos.testnet.permissionmanager.PermissionPreferences
 import com.qos.testnet.tests.DownloadSpeedTest
 import com.qos.testnet.tests.PingAndJitterTest
 import com.qos.testnet.tests.TestCallback
+import com.qos.testnet.tests.UploadSpeedStats
 import com.qos.testnet.utils.deviceInformation.DeviceInformation
 import com.qos.testnet.utils.deviceInformation.LocationInfo
 import com.qos.testnet.utils.network.GetBetterHost
@@ -32,12 +33,11 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
     private val context by lazy { homeContext }
     private val getBetterHost = GetBetterHost()
     private val downloadSpeedTest = DownloadSpeedTest()
+    private val uploadSpeedStats = UploadSpeedStats()
     val pingAndJitterTest = PingAndJitterTest()
     private val deviceInformation = DeviceInformation(context)
     private val locationInfo = LocationInfo(context)
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
-
-    //private val uploadSpeedStats = UploadSpeedStats()
 
     private var dontAskAgain = false
     private var dontAskAgainDenied = false
@@ -124,6 +124,9 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
 
                         override fun OnTestSuccess(downloadSpeed: String) {
                             finalDownloadRate.postValue(downloadSpeed)
+                            Handler(Looper.getMainLooper()).postDelayed(
+                                { this@HomeViewModel.startUploadSpeedTest() }, 500
+                            )
                         }
 
                         override fun OnTestBackground(
@@ -136,6 +139,41 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
 
 
                     })
+            } finally {
+                progress.postValue(0)
+                instantMeasurements.postValue("")
+            }
+        }.start()
+    }
+
+    /**
+     * Start Upload Test
+     */
+    fun startUploadSpeedTest() {
+        Thread {
+            try {
+                uploadSpeedStats.runUploadSpeedTest(object : TestCallback {
+                    override fun OnTestStart() {
+                        deviceInfo.postValue("")
+                    }
+
+                    override fun OnTestSuccess(uploadSpeed: String) {
+                        finalUploadRate.postValue(uploadSpeed)
+                    }
+
+                    override fun OnTestBackground(
+                        currentBackgroundMeasurement: String,
+                        currentBackgroundProgress: Int
+                    ) {
+                        progress.postValue(currentBackgroundProgress)
+                        instantMeasurements.postValue(currentBackgroundMeasurement)
+                    }
+
+                    override fun OnTestFailed(errorMessage: String) {
+                        // Handle any errors that occur during the test
+                        Log.e("UploadSpeedTest", "Test failed: $errorMessage")
+                    }
+                }, getBetterHost.getUrlUploadAddress())
             } finally {
                 progress.postValue(0)
                 instantMeasurements.postValue("")
@@ -187,7 +225,8 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
             |Ping: ${pingAndJitterTest.pingMeasured} ms
             |Jitter: ${pingAndJitterTest.jitterMeasured} ms
             |Best server: ${getBetterHost.getUrlAddress()}
-            |Download Speed: ${downloadSpeedTest.finalDownloadSpeed} Mb/s""".trimMargin()
+            |Download Speed: ${downloadSpeedTest.finalDownloadSpeed} Mb/s
+            |Upload Speed: ${uploadSpeedStats.finalUploadRate} Mb/s""".trimMargin()
     }
 
     /**
@@ -267,6 +306,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         var progress: MutableLiveData<Int> = MutableLiveData()
             private set
         private var finalDownloadRate = MutableLiveData<String>()
+        private var finalUploadRate = MutableLiveData<String>()
         private val availableServers = MutableLiveData<String>()
 
         @JvmField
