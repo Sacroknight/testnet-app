@@ -19,5 +19,6 @@
     <string name="dont_Ask_Again">Don\'t ask again</string>
     <string name="downloadspeedstats_class_name">Download Speed Stats</string>
     <string name="mega_bits_per_second">" Mb/s"</string>
+    <string name="uploadspeedstats_class_name">Upload Speed Stats</string>
 
 </resources>
