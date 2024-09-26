@@ -1,8 +1,10 @@
 package com.qos.testnet.tests;
 
-import android.os.Handler;
+import android.util.Log;
 
-import com.qos.myapplication.databinding.FragmentHomeBinding;
+import androidx.lifecycle.MutableLiveData;
+
+import com.qos.myapplication.R;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -17,72 +19,75 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
- * The type Http upload test using OkHttp.
+ * The type Http upload test.
  */
-public class UploadSpeedStats extends Thread {
-
+public class UploadSpeedStats implements InternetTest, TestCallback {
+    private static final int BUFFER_SIZE = 1024 * 1024; // 1 MB
+    private static final int THREAD_COUNT = 4;
+    private static final int ITERATIONS = 128;
     /**
-     * The Uploaded k byte.
+     * The Start time.
      */
-    static int uploadedBytes = 0;
+    long startTime = 0;
     /**
-     * The File url.
+     * The End time.
      */
-    public String fileURL;
+    long endTime = 0;
     /**
      * The Upload elapsed time.
      */
     double uploadElapsedTime = 0;
     /**
-     * The Finished.
+     * The Uploaded bytes.
      */
-    boolean finished = false;
-    /**
-     * The Elapsed time.
-     */
-    double elapsedTime = 0;
-    private final Handler handler;
-    private final FragmentHomeBinding binding;
-    private double instantUploadRate;
-
-    public void setFinalUploadRate(double finalUploadRate) {
-        this.finalUploadRate = finalUploadRate;
-    }
-
+    static int uploadedBytes = 0;
     /**
      * The Final upload rate.
      */
     double finalUploadRate = 0.0;
     /**
-     * The Start time.
+     * The Finished.
      */
-    long startTime;
+    boolean finished = false;
+    /**
+     * The Instant upload rate.
+     */
+    double instantUploadRate = 0;
 
     /**
-     * Instantiates a new Http upload test.
-     *
-     * @param fragmentHomeBinding the fragment home binding
-     * @param handler the fragment handler
+     * The Http client.
      */
-    public UploadSpeedStats(FragmentHomeBinding fragmentHomeBinding, Handler handler) {
-        this.binding = fragmentHomeBinding;
-        this.handler = handler;
-    }
+    private final OkHttpClient client;
+    private MutableLiveData<String> instantaneousMeasurementsLiveData = null;
+    private MutableLiveData<String> finalUploadRateLiveData = null;
+    private MutableLiveData<Integer> instantUploadRateForUI = null;
 
-    private double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
-        BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
-        return bd.doubleValue();
+    /**
+     * Set if test is finished.
+     */
+    public void setFinished(boolean finished) {
+        this.finished = finished;
     }
 
     /**
      * Is finished boolean.
      *
-     * @return the boolean
+     * @return the test is finished.
      */
     public boolean isFinished() {
         return finished;
+    }
+
+    private double round(double value) {
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(2, RoundingMode.HALF_UP);
+        return bd.doubleValue();
+    }
+
+    private int roundInt(double value) {
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(2, RoundingMode.HALF_UP);
+        return bd.intValue();
     }
 
     /**
@@ -91,13 +96,23 @@ public class UploadSpeedStats extends Thread {
      * @return the instant upload rate
      */
     public double getInstantUploadRate() {
-        if (uploadedBytes >= 0) {
-            long now = System.currentTimeMillis();
-            elapsedTime = (now - startTime) / 1000.0;
-            return round(((uploadedBytes / 1000.0) * 8) / elapsedTime, 2);
+        return instantUploadRate;
+    }
+
+    /**
+     * Sets instant upload rate.
+     *
+     * @param uploadedByte the uploaded byte
+     * @param elapsedTime  the elapsed time
+     */
+    public void setInstantUploadRate(int uploadedByte, double elapsedTime) {
+        if (uploadedByte >= 0) {
+            this.instantUploadRate = round((uploadedByte * 8 * 1e-6) / elapsedTime);
         } else {
-            return 0.0;
+            this.instantUploadRate = 0.0;
         }
+        setInstantMeasurement(String.valueOf(getInstantUploadRate() + (R.string.mega_bits_per_second)));
+        setProgress(roundInt(getInstantUploadRate()));
     }
 
     /**
@@ -106,77 +121,120 @@ public class UploadSpeedStats extends Thread {
      * @return the final upload rate
      */
     public double getFinalUploadRate() {
-        return round(finalUploadRate, 2);
+        return round(finalUploadRate);
     }
 
-    @Override
-    public void run() {
-        try {
-            OkHttpClient client = new OkHttpClient();
-            uploadedBytes = 0;
-            startTime = System.currentTimeMillis();
-            ExecutorService executor = Executors.newFixedThreadPool(4);
-            byte[] buffer = new byte[150 * 1024];
-            int timeout = 10;
+    /**
+     * Sets final upload rate
+     */
+    private void setFinalUploadRate(double uploadRate) {
+        this.finalUploadRate = uploadRate;
+    }
 
-            for (int i = 0; i < 4; i++) {
+    /**
+     * Instantiates a new Http upload test.
+     */
+    public UploadSpeedStats() {
+        setFinished(false);
+        instantaneousMeasurementsLiveData = new MutableLiveData<>();
+        finalUploadRateLiveData = new MutableLiveData<>();
+        instantUploadRateForUI = new MutableLiveData<>();
+        client = new OkHttpClient();
+    }
+
+    public void runUploadSpeedTest(TestCallback testCallback, String url) {
+        try {
+            uploadedBytes = 0;
+            OnTestStart();
+            byte[] buffer = new byte[BUFFER_SIZE];
+            ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
+            startTime = System.currentTimeMillis();
+            for (int i = 0; i < ITERATIONS; i++) {
                 executor.execute(() -> {
-                    while (true) {
-                        try {
-                            Request request = new Request.Builder()
-                                    .url(fileURL)
-                                    .post(RequestBody.create(MediaType.get("application/octet-stream"), buffer))
-                                    .build();
-                            try (Response response = client.newCall(request).execute()) {
-                                uploadedBytes += buffer.length;
-                                long endTime = System.currentTimeMillis();
-                                double uploadElapsedTime = (endTime - startTime) / 1000.0;
-                                setInstantUploadRate(uploadedBytes, uploadElapsedTime);
-                                handler.post(this::run2);
-                                if (uploadElapsedTime >= timeout) {
-                                    break;
-                                }
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                    try {
+                        RequestBody requestBody = RequestBody.create(buffer, MediaType.get("application/octet-stream"));
+                        Request request = new Request.Builder().url(url).post(requestBody).build();
+                        try (Response response = client.newCall(request).execute()) {
+                            isResponseSuccessful(response, testCallback);
+                            uploadedBytes += buffer.length;
+                            endTime = System.currentTimeMillis();
+                            uploadElapsedTime = (double) (endTime - startTime) / 1000;
+                            setInstantUploadRate(uploadedBytes, uploadElapsedTime);
+                            testCallback.OnTestBackground(String.format("%.2f" + R.string.mega_bits_per_second, getInstantUploadRate()), roundInt(getInstantUploadRate()));
                         }
+                    } catch (IOException ex) {
+                        Log.e("Upload Error", "Error during upload speed test", ex);
                     }
                 });
             }
-
             executor.shutdown();
             while (!executor.isTerminated()) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                    Thread.currentThread().interrupt();
-                }
+                Thread.sleep(100);
             }
-            long now = System.currentTimeMillis();
-            uploadElapsedTime = (now - startTime) / 1000.0;
-            finalUploadRate = ((uploadedBytes*8*1e-6) / uploadElapsedTime);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        finished = true;
-    }
+            endTime = System.currentTimeMillis();
+            uploadElapsedTime = (endTime - startTime) / 1e3;
+            setFinalUploadRate((uploadedBytes * 8 * 1e-6) / uploadElapsedTime);
+            setFinalMeasurement(finalUploadRate + " Mb/s");
 
-    private void setInstantUploadRate(int uploadedByte, double uploadElapsedTime) {
-        if (uploadedByte >= 0) {
-            this.instantUploadRate = round ((uploadedByte*8*1e-6) / elapsedTime, 2);
-        } else {
-            this.instantUploadRate = 0.0;
+        } catch (InterruptedException e) {
+            Log.e(String.valueOf(R.string.uploadspeedstats_class_name), "Error during upload speed test", e);
+            Thread.currentThread().interrupt();
+        } finally {
+            finished = true;
+            testCallback.OnTestSuccess(getFinalUploadRate() + " Mb/s");
         }
     }
 
-    public void getUploadSpeed(String fileURL){
-        this.fileURL = fileURL;
-        start();
+    private void isResponseSuccessful(Response response, TestCallback testCallback) {
+        if (!response.isSuccessful()) {
+            String errorMessage = "Unexpected code " + response + ": " + response.message();
+            Log.e("Upload Error", errorMessage);
+            testCallback.OnTestFailed(errorMessage);
+        }
     }
-    private void run2() {
-        binding.instantMeasurements.setText(String.valueOf(uploadedBytes));
-        binding.testProgressIndicator.setMax((int) (instantUploadRate + 10));
-        binding.testProgressIndicator.setProgress((int) instantUploadRate);
+
+    @Override
+    public MutableLiveData<String> getInstantMeasurement() {
+        return instantaneousMeasurementsLiveData;
+    }
+
+    @Override
+    public void setInstantMeasurement(String currentMeasurement) {
+        instantaneousMeasurementsLiveData.postValue(currentMeasurement);
+    }
+
+    @Override
+    public MutableLiveData<String> getFinalMeasurement() {
+        return finalUploadRateLiveData;
+    }
+
+    @Override
+    public void setFinalMeasurement(String finalMeasurement) {
+        finalUploadRateLiveData.postValue(finalMeasurement);
+    }
+
+    @Override
+    public MutableLiveData<Integer> getProgress() {
+        return instantUploadRateForUI;
+    }
+
+    @Override
+    public void setProgress(int instantUploadRate) {
+        instantUploadRateForUI.postValue(instantUploadRate);
+    }
+
+    @Override
+    public void OnTestStart() {
+        finished = false;
+    }
+
+    @Override
+    public void OnTestSuccess(String finalUploadRate) {
+        // TODO document why this method is empty
+    }
+
+    @Override
+    public void OnTestBackground(String instantUploadRate, int instantUploadRateUi) {
+        // TODO document why this method is empty
     }
 }
