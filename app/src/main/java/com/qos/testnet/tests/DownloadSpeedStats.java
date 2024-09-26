@@ -21,7 +21,6 @@ import okhttp3.Response;
  * The type Http download test.
  */
 public class DownloadSpeedStats implements InternetTest, TestCallback {
-    public static final double ERROR_MEASURING_DOWNLOADING_RATE = -404;
     /**
      * The Start time.
      */

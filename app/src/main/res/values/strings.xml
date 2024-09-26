@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TestNet</string>
+    <string name="app_name" translatable="false">TestNet</string>
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
@@ -12,7 +12,7 @@
     <string name="request_Location_Dialog">This app needs access to your location to retrieve cell information and provide accurate results.</string>
     <string name="request_Phone_Permission">Phone State Permission Needed</string>
     <string name="request_Phone_Dialog">This app needs access to your phone configuration to retrieve cell information and provide accurate results.</string>
-   <string name="ok">Ok</string>
+   <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="grant_Permission">Grant Permission</string>
     <string name="continue_Without_Permission">Continue Without Permission</string>
