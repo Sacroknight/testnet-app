@@ -166,7 +166,7 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
                         endTime = System.currentTimeMillis();
                         downloadElapsedTime = (double) (endTime - startTime) / 1000;
                         setInstantDownloadRate(downloadedBytes, downloadElapsedTime);
-                        testCallback.OnTestBackground(String.valueOf(getInstantDownloadRate() + R.string.mega_bits_per_second), roundInt(getInstantDownloadRate()));
+                        testCallback.OnTestBackground(String.format("%.2f" + R.string.mega_bits_per_second, getInstantDownloadRate()), roundInt(getInstantDownloadRate()));
                         /*
                          * The Timeout.
                          */
