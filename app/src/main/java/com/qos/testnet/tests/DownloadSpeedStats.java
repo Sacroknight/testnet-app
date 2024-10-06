@@ -1,10 +1,11 @@
 package com.qos.testnet.tests;
 
+import android.content.Context;
 import android.util.Log;
 
 import androidx.lifecycle.MutableLiveData;
 
-import com.qos.myapplication.R;
+import com.qos.testnet.R;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,10 +55,10 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
      * The Http conn.
      */
     private final OkHttpClient client;
-    private MutableLiveData<String> instantaneousMeasurementsLiveData = null;
-    private MutableLiveData<String> finalDownloadRateLiveData = null;
-    private MutableLiveData<Integer> instantDownloadRateForUI = null;
-
+    private final MutableLiveData<String> instantaneousMeasurementsLiveData = new MutableLiveData<>();
+    private final MutableLiveData<String> finalDownloadRateLiveData = new MutableLiveData<>();
+    private final MutableLiveData<Integer> instantDownloadRateForUI = new MutableLiveData<>();
+    private final Context context;
 
     /**
      * Set if test is finished.
@@ -131,11 +132,9 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
     /**
      * Instantiates a new Http download test.
      */
-    public DownloadSpeedStats() {
+    public DownloadSpeedStats(Context context) {
+        this.context = context;
         setFinished(false);
-        instantaneousMeasurementsLiveData = new MutableLiveData<>();
-        finalDownloadRateLiveData = new MutableLiveData<>();
-        instantDownloadRateForUI = new MutableLiveData<>();
         client = new OkHttpClient();
     }
 
@@ -166,7 +165,8 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
                         endTime = System.currentTimeMillis();
                         downloadElapsedTime = (double) (endTime - startTime) / 1000;
                         setInstantDownloadRate(downloadedBytes, downloadElapsedTime);
-                        testCallback.OnTestBackground(String.valueOf(getInstantDownloadRate() + R.string.mega_bits_per_second), roundInt(getInstantDownloadRate()));
+                        testCallback.OnTestBackground(String.format("%.2f" + context.getString(R.string.mega_bits_per_second), getInstantDownloadRate()), roundInt(getInstantDownloadRate()));
+
                         /*
                          * The Timeout.
                          */

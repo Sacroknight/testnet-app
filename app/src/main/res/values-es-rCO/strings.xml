@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="title_home">Inicio</string>
+    <string name="title_dashboard">Pruebas Individuales</string>
+    <string name="title_notifications">Historial</string>
+    <string name="title_start">Iniciar</string>
+    <string name="not_deviceInfo">No se pudo encontrar información del dispositivo</string>
+    <string name="permissions_Needed">Permisos requeridos</string>
+    <string name="permissions_Needed_Dialog">Esta aplicación necesita acceso a tu ubicación y configuración del teléfono para brindar un resultado de alta precisión en tus pruebas.</string>
+    <string name="request_Location">Permisos de ubicación requeridos</string>
+    <string name="request_Location_Dialog">Esta aplicación necesita acceso a tu ubicación para obtener información de la red celular y proporcionar resultados precisos.</string>
+    <string name="request_Phone_Permission">Permiso de información del dispositico requerido</string>
+    <string name="request_Phone_Dialog">Esta aplicación necesita acceso a la configuración de tu teléfono para obtener información de la red celular y proporcionar resultados precisos.</string>
+    <string name="cancel">Cancelar</string>
+    <string name="grant_Permission">Conceder permiso</string>
+    <string name="continue_Without_Permission">Continuar sin permisos</string>
+    <string name="dont_Ask_Again">No preguntar de nuevo</string>
+    <string name="downloadspeedstats_class_name">Estadísticas de velocidad de bajada</string>
+    <string name="uploadspeedstats_class_name">Estadísticas de velocidad de subida</string>
+</resources>

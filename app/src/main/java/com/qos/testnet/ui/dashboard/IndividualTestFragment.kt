@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import com.qos.myapplication.databinding.FragmentIndividualTestBinding
+import com.qos.testnet.databinding.FragmentIndividualTestBinding
 
 class IndividualTestFragment : Fragment() {
     private var binding: FragmentIndividualTestBinding? = null

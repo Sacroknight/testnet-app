@@ -6,8 +6,7 @@ import androidx.navigation.Navigation
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.NavigationUI
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.qos.myapplication.R
-import com.qos.myapplication.databinding.ActivityMainBinding
+import com.qos.testnet.databinding.ActivityMainBinding
 import com.qos.testnet.permissionmanager.PermissionPreferences
 import com.qos.testnet.permissionmanager.RequestPermissions
 import kotlinx.coroutines.CoroutineScope
