@@ -8,7 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
-import com.qos.myapplication.databinding.FragmentHomeBinding
+import com.qos.testnet.databinding.FragmentHomeBinding
 import com.qos.testnet.ui.home.HomeViewModel.Companion.deviceInfo
 import com.qos.testnet.ui.home.HomeViewModel.Companion.instantMeasurements
 import com.qos.testnet.ui.home.HomeViewModel.Companion.jitterMeasurement

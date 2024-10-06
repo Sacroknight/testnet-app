@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.qos.myapplication"
+    namespace = "com.qos.testnet"
     compileSdk = 35
 
     defaultConfig {

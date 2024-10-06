@@ -10,12 +10,13 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.qos.myapplication.databinding.FragmentTestResultsBinding;
+import com.qos.testnet.databinding.FragmentTestResultsBinding;
 
 public class TestResultsFragment extends Fragment{
 
     private  FragmentTestResultsBinding binding;
 
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
         TestResultsViewModel testResultsViewModel =

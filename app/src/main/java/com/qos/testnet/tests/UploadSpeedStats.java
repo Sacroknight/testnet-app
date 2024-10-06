@@ -4,13 +4,14 @@ import android.util.Log;
 
 import androidx.lifecycle.MutableLiveData;
 
-import com.qos.myapplication.R;
+import com.qos.testnet.R;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -40,7 +41,7 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
     /**
      * The Uploaded bytes.
      */
-    static int uploadedBytes = 0;
+    int uploadedBytes = 0;
     /**
      * The Final upload rate.
      */
@@ -52,15 +53,15 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
     /**
      * The Instant upload rate.
      */
-    double instantUploadRate = 0;
+    double instantUploadRate = 0.0;
 
     /**
      * The Http client.
      */
     private final OkHttpClient client;
-    private MutableLiveData<String> instantaneousMeasurementsLiveData = null;
-    private MutableLiveData<String> finalUploadRateLiveData = null;
-    private MutableLiveData<Integer> instantUploadRateForUI = null;
+    private MutableLiveData<String> instantaneousMeasurementsLiveData = new MutableLiveData<>();
+    private MutableLiveData<String> finalUploadRateLiveData = new MutableLiveData<>();
+    private MutableLiveData<Integer> instantUploadRateForUI = new MutableLiveData<>();
 
     /**
      * Set if test is finished.
@@ -160,16 +161,17 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
                             endTime = System.currentTimeMillis();
                             uploadElapsedTime = (double) (endTime - startTime) / 1000;
                             setInstantUploadRate(uploadedBytes, uploadElapsedTime);
-                            testCallback.OnTestBackground(String.format("%.2f" + R.string.mega_bits_per_second, getInstantUploadRate()), roundInt(getInstantUploadRate()));
+                            testCallback.OnTestBackground(String.format("%.2f Mb/s", getInstantUploadRate()), roundInt(getInstantUploadRate()));
                         }
                     } catch (IOException ex) {
-                        Log.e("Upload Error", "Error during upload speed test", ex);
+                        Log.e(String.valueOf(R.string.uploadspeedstats_class_name), "Error during upload speed test", ex);
                     }
                 });
             }
             executor.shutdown();
-            while (!executor.isTerminated()) {
-                Thread.sleep(100);
+            if (!executor.awaitTermination(4, TimeUnit.MINUTES)) {
+                Log.e(String.valueOf(R.string.uploadspeedstats_class_name), "Executor did not terminate in the specified time.");
+                executor.shutdownNow(); // Attempt to stop all actively executing tasks
             }
             endTime = System.currentTimeMillis();
             uploadElapsedTime = (endTime - startTime) / 1e3;
@@ -188,7 +190,7 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
     private void isResponseSuccessful(Response response, TestCallback testCallback) {
         if (!response.isSuccessful()) {
             String errorMessage = "Unexpected code " + response + ": " + response.message();
-            Log.e("Upload Error", errorMessage);
+            Log.e(String.valueOf(R.string.uploadspeedstats_class_name), errorMessage);
             testCallback.OnTestFailed(errorMessage);
         }
     }

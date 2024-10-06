@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name" translatable="false">TestNet</string>
     <string name="title_home">Home</string>
-    <string name="title_dashboard">Dashboard</string>
+    <string name="title_dashboard">Individual Tests</string>
     <string name="title_notifications">Notifications</string>
     <string name="title_start">Start</string>
     <string name="not_deviceInfo">Couldn\'t get device information.</string>
@@ -12,13 +12,13 @@
     <string name="request_Location_Dialog">This app needs access to your location to retrieve cell information and provide accurate results.</string>
     <string name="request_Phone_Permission">Phone State Permission Needed</string>
     <string name="request_Phone_Dialog">This app needs access to your phone configuration to retrieve cell information and provide accurate results.</string>
-   <string name="ok">OK</string>
+   <string name="ok" translatable="false">OK</string>
     <string name="cancel">Cancel</string>
     <string name="grant_Permission">Grant Permission</string>
     <string name="continue_Without_Permission">Continue Without Permission</string>
     <string name="dont_Ask_Again">Don\'t ask again</string>
     <string name="downloadspeedstats_class_name">Download Speed Stats</string>
-    <string name="mega_bits_per_second">" Mb/s"</string>
+    <string name="mega_bits_per_second" translatable="false">Mb/s</string>
     <string name="uploadspeedstats_class_name">Upload Speed Stats</string>
 
 </resources>

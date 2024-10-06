@@ -32,8 +32,8 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
 
     private val context by lazy { homeContext }
     private val getBetterHost = GetBetterHost()
-    private val downloadSpeedTest = DownloadSpeedTest()
     private val uploadSpeedStats = UploadSpeedStats()
+    private val downloadSpeedTest = DownloadSpeedTest(context)
     val pingAndJitterTest = PingAndJitterTest()
     private val deviceInformation = DeviceInformation(context)
     private val locationInfo = LocationInfo(context)
@@ -43,7 +43,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
     private var dontAskAgainDenied = false
     private var success: Boolean = false
 
-    private var currentLocation: String? = null
+    private var currentLocation: String? = "-1"
 
     /**
      * Start the location retrieval process
