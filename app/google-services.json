@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "293238286002",
+    "firebase_url": "https://testnet-1999-default-rtdb.firebaseio.com",
+    "project_id": "testnet-1999",
+    "storage_bucket": "testnet-1999.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:293238286002:android:3ece75f6de961540ac8bab",
+        "android_client_info": {
+          "package_name": "com.qos.testnet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnTormPpnAH4pOBWkK-zY-BkO_5jNyvtw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
