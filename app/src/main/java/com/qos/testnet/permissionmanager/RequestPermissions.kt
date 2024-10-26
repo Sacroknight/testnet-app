@@ -6,6 +6,7 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.qos.testnet.R
@@ -17,8 +18,14 @@ class RequestPermissions(private val context: Context) {
     private val permissionPreferences: PermissionPreferences by lazy { PermissionPreferences.getInstance() }
 
     fun hasLocationPermissions(): Boolean {
-        return ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun hasReadPhonePermissions(): Boolean {
@@ -37,6 +44,40 @@ class RequestPermissions(private val context: Context) {
                 Manifest.permission.READ_PHONE_STATE
             ) == PackageManager.PERMISSION_GRANTED
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.DONUT)
+    fun hasWriteStoragePermissions(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
+    fun hasReadStoragePermissions(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    @RequiresApi(Build.VERSION_CODES.DONUT)
+    fun requestWriteStoragePermissions() {
+        ActivityCompat.requestPermissions(
+            (context as Activity),
+            arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+            REQUEST_LOCATION_PERMISSION
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
+    fun requestReadStoragePermissions() {
+        ActivityCompat.requestPermissions(
+            (context as Activity),
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+            REQUEST_LOCATION_PERMISSION
+        )
     }
 
     fun hasAllNecessaryPermissions(): Boolean {
@@ -70,21 +111,25 @@ class RequestPermissions(private val context: Context) {
     }
 
     fun requestLocationPermissionsDialog() {
-        val toppings = arrayOf(context.getString(R.string.dont_Ask_Again))
-        val checkedItems = 0
+        val dontAskAgain = booleanArrayOf(false)
+
         AlertDialog.Builder(context)
             .setTitle(context.getString(R.string.request_Location))
             .setMessage(context.getString(R.string.request_Location_Dialog))
-            .setSingleChoiceItems(toppings, checkedItems) { _, which ->
+            .setMultiChoiceItems(
+                arrayOf(context.getString(R.string.dont_Ask_Again)),
+                dontAskAgain
+            ) { _, _, isChecked ->
+                dontAskAgain[0] = isChecked
+            }
+            .setPositiveButton(context.getString(R.string.grant_Permission)) { _, _ ->
                 CoroutineScope(Dispatchers.IO).launch {
                     permissionPreferences.savePermissionPreference(
                         context,
                         PermissionPreferences.PermissionPreferencesKeys.DONT_ASK_AGAIN_LOCATION_PERMISSION,
-                        which == 0
+                        dontAskAgain[0]
                     )
                 }
-            }
-            .setPositiveButton(context.getString(R.string.grant_Permission)) { _, _ ->
                 requestLocationPermissions()
             }
             .setNegativeButton(context.getString(R.string.continue_Without_Permission)) { dialog, _ ->
@@ -94,47 +139,46 @@ class RequestPermissions(private val context: Context) {
     }
 
     fun requestAllPermissionsDialog() {
-            AlertDialog.Builder(context).setTitle(context.getString(R.string.permissions_Needed))
-                .setMessage(context.getString(R.string.permissions_Needed_Dialog))
-                .setPositiveButton(context.getString(R.string.grant_Permission)) { _, _ ->
-                    requestLocationPermissions()
-                    requestReadPhonePermissions()
-                }
-                .setNegativeButton(context.getString(R.string.continue_Without_Permission)) { dialog, _ ->
-                    dialog.dismiss()
-                }
-                .show()
+        AlertDialog.Builder(context).setTitle(context.getString(R.string.permissions_Needed))
+            .setMessage(context.getString(R.string.permissions_Needed_Dialog))
+            .setPositiveButton(context.getString(R.string.grant_Permission)) { _, _ ->
+                requestLocationPermissions()
+                requestReadPhonePermissions()
+            }
+            .setNegativeButton(context.getString(R.string.continue_Without_Permission)) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
+
     fun showPermissionDeniedWarning() {
-        val toppings = arrayOf(context.getString(R.string.dont_Ask_Again))
-        val checkedItems = 0
+        val dontAskAgain = booleanArrayOf(false)
 
         AlertDialog.Builder(context)
-            .setTitle("Permission Warning")
-            .setMessage(
-                "Cell information retrieval requires location permission. " +
-                        "Test results will have lower precision without it. " +
-                        "The experiment can still be conducted."
-            )
-            .setSingleChoiceItems(toppings, checkedItems) { _, which ->
+            .setTitle(context.getString(R.string.permission_warning_title))
+            .setMessage(context.getString(R.string.permission_warning_message))
+            .setMultiChoiceItems(
+                arrayOf(context.getString(R.string.dont_Ask_Again)),
+                dontAskAgain
+            ) { _, _, isChecked ->
+                dontAskAgain[0] = isChecked
+            }
+            .setPositiveButton(context.getString(R.string.continue_label)) { dialog, _ ->
                 CoroutineScope(Dispatchers.IO).launch {
-                    val dontAskAgain = which == 0
                     permissionPreferences.savePermissionPreference(
                         context,
                         PermissionPreferences.PermissionPreferencesKeys.DONT_ASK_AGAIN_LOCATION_PERMISSION,
-                        dontAskAgain
+                        dontAskAgain[0]
                     )
                     permissionPreferences.savePermissionPreference(
                         context,
                         PermissionPreferences.PermissionPreferencesKeys.DONT_ASK_AGAIN_PHONE_PERMISSION,
-                        dontAskAgain
+                        dontAskAgain[0]
                     )
                 }
-            }
-            .setPositiveButton("Continue") { dialog, _ ->
                 dialog.dismiss()
             }
-            .setNegativeButton("Grant Permissions") { dialog, _ ->
+            .setNegativeButton(context.getString(R.string.grant_permissions_label)) { dialog, _ ->
                 dialog.dismiss()
                 requestLocationPermissions()
                 requestReadPhonePermissions()
