@@ -14,6 +14,7 @@
     <string name="cancel">Cancelar</string>
     <string name="grant_Permission">Conceder permiso</string>
     <string name="continue_Without_Permission">Continuar sin permisos</string>
+    <string name="continue_label">Continuar</string>
     <string name="dont_Ask_Again">No preguntar de nuevo</string>
     <string name="downloadspeedstats_class_name">Estadísticas de velocidad de bajada</string>
     <string name="uploadspeedstats_class_name">Estadísticas de velocidad de subida</string>
