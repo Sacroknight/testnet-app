@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="8dp"
+    android:background="?android:attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textViewDispositivo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dispositivo:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewFecha"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Fecha:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewIdVersionAndroid"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Versión Android:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewIntensidadDeSenal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Intensidad de Señal:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewJitter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Jitter:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewOperadorDeRed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Operador de Red:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewPing"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ping:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewRedScore"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Red Score:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewServidor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Servidor:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewTipoDeRed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tipo de Red:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewUbicacion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ubicación:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewUserId"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="User ID:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewVelocidadDeCarga"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Velocidad de Carga:"
+            android:textSize="@dimen/normal_text" />
+
+        <TextView
+            android:id="@+id/textViewVelocidadDeDescarga"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Velocidad de Descarga:"
+            android:textSize="@dimen/normal_text" />
+
+    </LinearLayout>
+</ScrollView>
