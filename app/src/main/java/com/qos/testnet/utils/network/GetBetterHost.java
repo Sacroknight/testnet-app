@@ -1,6 +1,7 @@
 package com.qos.testnet.utils.network;
 
 
+import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -25,22 +26,14 @@ public class GetBetterHost implements NetworkCallback {
      */
     private double selfLon = 0.0;
     /**
-     * The server lat.
-     */
-    private double serverLat = 0.0;
-    /**
-     * The server lon.
-     */
-    private double serverLon = 0.0;
-    /**
      * url of the best server
      */
-    public String urlAddress;
-    public String urlUploadAddress;
+    private String urlAddress;
+    private String urlUploadAddress;
     /**
      * The Finished.
      */
-    public boolean finished = false;
+    private boolean finished = false;
     private static final double SEMI_MAJOR_AXIS_MT = 6378137;
     private static final double SEMI_MINOR_AXIS_MT = 6356752.314245;
     private static final double FLATTENING = 1 / 298.257223563;
@@ -107,56 +100,72 @@ public class GetBetterHost implements NetworkCallback {
 
     public void retrieveBestHost(NetworkCallback networkCallback) {
         try {
+            // Initialize the HTTP client
             client = new OkHttpClient();
+            // Build the request
             Request request = new Request.Builder()
                     .url(URL)
                     .addHeader("Accept", "application/json")
                     .build();
+            // Retrieve the best host by distance
             retrieveBestHostByDistance(request, networkCallback);
+            // Notify success if no exceptions occur
+            networkCallback.onRequestSuccess(getUrlAddress());
         } catch (IOException | JSONException e) {
-            e.printStackTrace();
-            return;
+            Log.e(this.getClass().getName(), "An error occurred while retrieving the best host: " + e.getMessage());
+            networkCallback.onRequestFailure("An error occurred: " + e.getMessage());
+        } finally {
+            finished = true;
         }
-        networkCallback.onRequestSuccess(getUrlAddress());
-        finished = true;
     }
 
     private void retrieveBestHostByDistance(Request request, NetworkCallback networkCallback) throws IOException, JSONException {
-        JSONArray jsonArray;
-        //Make the request
-        Response response = client.newCall(request).execute();
-        if (!response.isSuccessful()) {
-            networkCallback.onRequestFailure("Failed to get response from server: " + response);
-        } else {
-            double minDistance = Double.MAX_VALUE;
-            //Obtain the body of the response on a JSON
+        double serverLon;
+        double serverLat;
+        // Make the request
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                networkCallback.onRequestFailure("Failed to get response from server: " + response);
+                Log.e(this.getClass().getName(), "Failed to get response from server:" + response);
+                return; // Early return to reduce nesting
+            }
+
+            // Obtain the body of the response as JSON
             assert response.body() != null;
             String responseData = response.body().string();
-            jsonArray = new JSONArray(responseData);
+            JSONArray jsonArray = new JSONArray(responseData);
+
+            double minDistance = Double.MAX_VALUE;
             String bestHostUrl = "";
+
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
                 serverLat = jsonObject.getDouble("lat");
                 serverLon = jsonObject.getDouble("lon");
                 String serverSponsor = jsonObject.getString("sponsor");
                 double distance = vicentyDistance(selfLat, selfLon, serverLat, serverLon);
-                if (serverSponsor.trim().equalsIgnoreCase(isp.trim())) {
+
+                boolean isPreferredSponsor = serverSponsor.trim().equalsIgnoreCase(isp.trim());
+                if ((isPreferredSponsor && distance <= 1000) || distance < minDistance) {
                     minDistance = distance;
                     bestHostUrl = jsonObject.getString("url");
-                } else {
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        bestHostUrl = jsonObject.getString("url");
+                    if (isPreferredSponsor && minDistance <= 1000) {
+                        break; // Exit early if preferred sponsor is close enough
                     }
                 }
             }
+
             setUrlUploadAddress(bestHostUrl);
-            String uploadAddress = bestHostUrl.split("/")[bestHostUrl.split("/").length - 1];
+
+            String[] urlParts = bestHostUrl.split("/");
+            String uploadAddress = urlParts[urlParts.length - 1];
             String urls = bestHostUrl.replace(uploadAddress, "");
             setUrlAddress(urls);
+        } catch (IOException | JSONException e) {
+            networkCallback.onRequestFailure("An error occurred: " + e.getMessage());
+            Log.e(this.getClass().getName(), "An error occurred while processing the response", e);
         }
     }
-
 
     public void getBestHost(String usrLocation, String isp, NetworkCallback networkCallback) {
         this.isp = isp;
