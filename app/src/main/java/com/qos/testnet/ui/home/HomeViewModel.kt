@@ -4,18 +4,24 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.qos.testnet.data.local.TestData
+import com.qos.testnet.data.repository.RepositoryCRUD
 import com.qos.testnet.permissionmanager.PermissionPreferences
 import com.qos.testnet.tests.DownloadSpeedTest
 import com.qos.testnet.tests.PingAndJitterTest
 import com.qos.testnet.tests.TestCallback
 import com.qos.testnet.tests.UploadSpeedStats
-import com.qos.testnet.utils.deviceInformation.DeviceInformation
-import com.qos.testnet.utils.deviceInformation.LocationInfo
+import com.qos.testnet.utils.deviceinformation.DeviceInformation
+import com.qos.testnet.utils.deviceinformation.LocationInfo
 import com.qos.testnet.utils.network.GetBetterHost
+import com.qos.testnet.utils.network.MobileNetworkQualityScoreCalculator
 import com.qos.testnet.utils.network.NetworkCallback
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -39,11 +45,16 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
     private val locationInfo = LocationInfo(context)
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
+    private val firestore = FirebaseFirestore.getInstance()
+    private val firebaseAuth = FirebaseAuth.getInstance()
+    private val userRepository: RepositoryCRUD = RepositoryCRUD(firestore, firebaseAuth, context)
+
     private var dontAskAgain = false
     private var dontAskAgainDenied = false
-    private var success: Boolean = false
 
-    private var currentLocation: String? = "-1"
+    private var userId: String = ""
+    private var currentLocation: String? = null
+    private var score: Double = 0.0
 
     /**
      * Start the location retrieval process
@@ -81,6 +92,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
      * Start ping and jitter test
      */
     private fun startPingAndJitterTest() {
+        visibilityOfProgress.postValue(View.VISIBLE)
         Thread {
             pingAndJitterTest.startPingAndJitterTest(object : TestCallback {
                 override fun OnTestStart() {
@@ -92,6 +104,9 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                     jitterMeasurement.postValue(pingAndJitterTest.jitterMeasurement.value)
                     instantMeasurements.postValue("")
                     progress.postValue(0)
+                    viewModelScope.launch {
+                        userId = userRepository.getUserId()
+                    }
                     Handler(Looper.getMainLooper()).postDelayed(
                         { this@HomeViewModel.startDownloadSpeedTest() }, 500
                     )
@@ -105,6 +120,10 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                     progress.postValue(currentBackgroundProgress)
                 }
 
+                override fun OnTestFailed(errorMessage: String) {
+                    visibilityOfProgress.postValue(View.GONE)
+                    Log.e("PingAndJitterTest", "Test failed: $errorMessage")
+                }
             })
         }.start()
     }
@@ -116,7 +135,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         Thread {
             try {
                 downloadSpeedTest.startSpeedTest(
-                    getBetterHost.getUrlAddress(),
+                    getBetterHost.urlAddress,
                     object : TestCallback {
                         override fun OnTestStart() {
                             deviceInfo.postValue("")
@@ -135,6 +154,11 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                         ) {
                             progress.postValue(currentBackgroundProgress)
                             instantMeasurements.postValue(currentBackgroundMeasurement)
+                        }
+
+                        override fun OnTestFailed(errorMessage: String) {
+                            Log.e("DownloadSpeedTest", "Test failed: $errorMessage")
+                            visibilityOfProgress.postValue(View.GONE)
                         }
 
 
@@ -159,6 +183,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
 
                     override fun OnTestSuccess(uploadSpeed: String) {
                         finalUploadRate.postValue(uploadSpeed)
+                        calculateOverallRating()
                     }
 
                     override fun OnTestBackground(
@@ -172,13 +197,32 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                     override fun OnTestFailed(errorMessage: String) {
                         // Handle any errors that occur during the test
                         Log.e("UploadSpeedTest", "Test failed: $errorMessage")
+                        visibilityOfProgress.postValue(View.GONE)
                     }
-                }, getBetterHost.getUrlUploadAddress())
+                }, getBetterHost.urlUploadAddress)
             } finally {
                 progress.postValue(0)
+                visibilityOfProgress.postValue(View.GONE)
                 instantMeasurements.postValue("")
                 deviceInfo.postValue(getDeviceInformation())
                 isFinished.postValue(true)
+                val newTestData = TestData(
+                    dispositivo = deviceInformation.model,
+                    fecha = "2024-10-11T15:00:00Z",
+                    idVersionAndroid = deviceInformation.androidVersion.toInt(),
+                    intensidadDeSenal = deviceInformation.signalStrength,
+                    jitter = pingAndJitterTest.jitterMeasured,
+                    operadorDeRed = deviceInformation.carrier,
+                    ping = pingAndJitterTest.pingMeasured,
+                    redScore = score,
+                    servidor = getBetterHost.urlAddress,
+                    tipoDeRed = deviceInformation.networkType,
+                    ubicacion = currentLocation ?: "-1, -1",
+                    userId = userId,
+                    velocidadDeCarga = downloadSpeedTest.finalDownloadSpeed,
+                    velocidadDeDescarga = uploadSpeedStats.finalUploadRate
+                )
+                userRepository.sendData(newTestData)
             }
         }.start()
     }
@@ -224,9 +268,10 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
             |Current Host: ${pingAndJitterTest.currentHost}
             |Ping: ${pingAndJitterTest.pingMeasured} ms
             |Jitter: ${pingAndJitterTest.jitterMeasured} ms
-            |Best server: ${getBetterHost.getUrlAddress()}
+            |Best server: ${getBetterHost.urlAddress}
             |Download Speed: ${downloadSpeedTest.finalDownloadSpeed} Mb/s
-            |Upload Speed: ${uploadSpeedStats.finalUploadRate} Mb/s""".trimMargin()
+            |Upload Speed: ${uploadSpeedStats.finalUploadRate} Mb/s
+            |Score: $score""".trimMargin()
     }
 
     /**
@@ -287,6 +332,20 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         }.start()
     }
 
+    private fun calculateOverallRating() {
+        val ping = pingAndJitterTest.pingMeasured
+        val jitter = pingAndJitterTest.jitterMeasured
+        val downloadSpeed = downloadSpeedTest.finalDownloadSpeed
+        val uploadSpeed = uploadSpeedStats.finalUploadRate
+        val signalStrength = deviceInformation.signalStrength.toDouble()
+
+        score = MobileNetworkQualityScoreCalculator.calculateOverallScore(
+            ping, jitter, downloadSpeed, uploadSpeed, signalStrength.toInt()
+        )
+
+        overallRating.postValue(score)
+    }
+
     companion object {
         @JvmStatic
         var deviceInfo: MutableLiveData<String> = MutableLiveData()
@@ -308,6 +367,8 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         private var finalDownloadRate = MutableLiveData<String>()
         private var finalUploadRate = MutableLiveData<String>()
         private val availableServers = MutableLiveData<String>()
+        private val overallRating: MutableLiveData<Double> = MutableLiveData()
+        val visibilityOfProgress: MutableLiveData<Int> = MutableLiveData()
 
         @JvmField
         val isFinished: MutableLiveData<Boolean> = MutableLiveData()

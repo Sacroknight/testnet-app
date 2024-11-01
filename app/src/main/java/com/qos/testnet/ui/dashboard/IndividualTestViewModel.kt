@@ -25,23 +25,17 @@ class IndividualTestViewModel(individualContext: Context) : ViewModel() {
     private var _fetchedData = MutableLiveData<List<TestData>>()
     private val firebaseDatabase = FirebaseDatabase.getInstance()
 
-    // private val database: DatabaseReference = FirebaseDatabase.getInstance().getReference("data")
     private val database: DatabaseReference = firebaseDatabase.getReference("test_results")
     private val firestore = FirebaseFirestore.getInstance()
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val userRepository: RepositoryCRUD = RepositoryCRUD(firestore, firebaseAuth, context)
-
 
     init {
         mText.value = "This is dashboard fragment"
     }
 
     fun sendData(data: TestData) {
-        // Obtén una referencia a la colección "test_results" en Firestore
-        val collectionRef = firestore.collection("test_results")
-
-        // Añade un nuevo documento con los datos de "TestData"
-        collectionRef.add(data)
+        firestore.collection("test_results").add(data)
             .addOnSuccessListener { documentReference ->
                 Log.d("sendData", "DocumentSnapshot added with ID: ${documentReference.id}")
             }
@@ -62,12 +56,10 @@ class IndividualTestViewModel(individualContext: Context) : ViewModel() {
         }
     }
 
-    fun sendDataRealtimeDataBase(data: TestData) {
-        // Usa push() para obtener una nueva referencia de clave única en la colección "test_results"
-        val newEntryRef = database.push()
 
-        // Establece el valor de esta nueva entrada con los datos de "TestData"
-        newEntryRef.setValue(data).addOnCompleteListener { task ->
+
+    fun sendDataRealtimeDataBase(data: TestData) {
+        database.push().setValue(data).addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 Log.d("sendData", "Datos enviados correctamente")
             } else {
@@ -77,7 +69,6 @@ class IndividualTestViewModel(individualContext: Context) : ViewModel() {
     }
 
     fun fetchDataRealtimeDataStore(userId: String) {
-        // Crea una consulta para filtrar los datos por el campo "uid"
         val query = database.orderByChild("userId").equalTo(userId)
 
         query.addListenerForSingleValueEvent(object : ValueEventListener {

@@ -10,7 +10,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.qos.testnet.databinding.FragmentIndividualTestBinding
 import com.qos.testnet.utils.AdapterResults
-import com.qos.testnet.data.local.TestData
 import kotlinx.coroutines.launch
 
 class IndividualTestFragment : Fragment() {
@@ -18,7 +17,6 @@ class IndividualTestFragment : Fragment() {
     private var _binding: FragmentIndividualTestBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var individualTestViewModel: IndividualTestViewModel
     private lateinit var adapter: AdapterResults
 
     override fun onCreateView(
@@ -45,29 +43,28 @@ class IndividualTestFragment : Fragment() {
         }
 
         binding.buttonSend.setOnClickListener {
-            val newTestData = TestData(
-                dispositivo = "Poco X3",
-                fecha = "2024-10-11T15:00:00Z",
-                idVersionAndroid = 13,
-                intensidadDeSenal = -65,
-                jitter = 9,
-                operadorDeRed = "TIGO",
-                ping = 69,
-                redScore = 6,
-                servidor = "speedtest.tigo.com:8080/",
-                tipoDeRed = "3.5G",
-                ubicacion = "3.37673093,-76.55031147",
-                userId = "test_Id",
-                velocidadDeCarga = 20.66,
-                velocidadDeDescarga = 10.22
-            )
-            individualTestViewModel.sendData(newTestData)
+//            val newTestData = TestData(
+//                dispositivo = "Poco X3",
+//                fecha = "2024-10-11T15:00:00Z",
+//                idVersionAndroid = 13,
+//                intensidadDeSenal = -65,
+//                jitter = 9,
+//                operadorDeRed = "TIGO",
+//                ping = 69,
+//                redScore = 6,
+//                servidor = "speedtest.tigo.com:8080/",
+//                tipoDeRed = "3.5G",
+//                ubicacion = "3.37673093,-76.55031147",
+//                userId = "test_Id",
+//                velocidadDeCarga = 20.66,
+//                velocidadDeDescarga = 10.22
+//            )
+//            individualTestViewModel.sendData(newTestData)
         }
 
         binding.buttonFetch.setOnClickListener {
             lifecycleScope.launch {
-                val userId = individualTestViewModel.getUserId()
-                individualTestViewModel.fetchData("test_Id")
+                individualTestViewModel.fetchData()
             }
         }
 

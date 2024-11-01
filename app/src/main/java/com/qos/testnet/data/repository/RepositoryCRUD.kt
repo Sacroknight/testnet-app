@@ -1,6 +1,7 @@
 package com.qos.testnet.data.repository
 
 import android.content.Context
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.qos.testnet.data.local.TestData
@@ -40,5 +41,15 @@ class RepositoryCRUD(
         }
         val authResult = firebaseAuth.signInAnonymously().await()
         return authResult.user?.uid ?: throw IllegalStateException("Failed to create anonymous user")
+    }
+
+    fun sendData(data: TestData) {
+        firestore.collection("test_results").add(data)
+            .addOnSuccessListener { documentReference ->
+                Log.d("sendData", "DocumentSnapshot added with ID: ${documentReference.id}")
+            }
+            .addOnFailureListener { e ->
+                Log.e("sendData", "Error adding document", e)
+            }
     }
 }
