@@ -1,6 +1,10 @@
 package com.qos.testnet.tests;
 
 
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
+
 import androidx.lifecycle.MutableLiveData;
 
 import java.io.BufferedReader;
@@ -10,7 +14,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
 
 
@@ -18,7 +21,7 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
     public static final int MAX_PING_TIMES = 40;
     private static final int TIMEOUT_MS = 5000;
     private static final int ERROR_MEASURING_PING = -1;
-    private int probes = 0;
+    private int failedPings = 0;
 
     private MutableLiveData<String> instantPing = new MutableLiveData<>();
     private MutableLiveData<String> finalPing = new MutableLiveData<>();
@@ -31,32 +34,39 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
 
     /**
      * Return if the ping and jitter test is finished.
+     *
      * @return boolean finished
      */
     public boolean isFinished() {
         return finished;
     }
+
     /**
      * Set if the ping and jitter test is finished.
      */
     public void setFinished(boolean finished) {
         this.finished = finished;
     }
+
     /**
      * Return the ping measured.
+     *
      * @return Measured ping
      */
-    public int getPingMeasured(){
+    public int getPingMeasured() {
         return pingMeasure;
     }
+
     /**
      * Set the ping measured.
      */
     private void setFinalPing(int finalPing) {
         this.pingMeasure = finalPing;
     }
+
     /**
      * Return the jitter measured.
+     *
      * @return jitter measured
      */
     public int getJitterMeasured() {
@@ -72,11 +82,13 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
 
     /**
      * Return the jitter measured for the ui updates.
+     *
      * @return jitter measured
      */
     public MutableLiveData<String> getJitterLivedata() {
         return jitterLiveData;
     }
+
     /**
      * Set the jitter measured for the ui updates.
      */
@@ -92,6 +104,7 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
         jitterLiveData = new MutableLiveData<>();
         finished = false;
     }
+
     private void getMostVisitedWebsites() {
         host = new HashMap<>();
         host.put("google.com", 1);
@@ -112,28 +125,53 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
         return hostList.get(random.nextInt(hostList.size()));
     }
 
-    public void measuringPingJitter(String chosenHost, TestCallback testCallback) {
-        List<Integer> pingList = new ArrayList<>();
-        for (int i = 0; i < MAX_PING_TIMES; i++) {
-            int ping = measuringPing(chosenHost, testCallback);
-            pingList.add(ping);
-            setInstantMeasurement(ping + " ms");
-            setProgress(i*(100/MAX_PING_TIMES));
-            testCallback.OnTestBackground(ping + " ms", i*(100/MAX_PING_TIMES));
-        }
-        calculateAndSetStatistics(pingList, testCallback);
+    public void measuringPingJitter(final String chosenHost, final TestCallback testCallback) {
+        new Thread(() -> {
+            List<Integer> pingList = new ArrayList<>();
+            for (int i = 0; i < MAX_PING_TIMES; i++) {
+                int ping = measuringPing(chosenHost, testCallback);
+                pingList.add(ping);
+
+                // Contar pings fallidos o que tardan más de 5 segundos
+                if (ping == ERROR_MEASURING_PING || ping > TIMEOUT_MS) {
+                    failedPings++;
+                }
+
+                // Actualiza la interfaz de usuario en el hilo principal
+                int pingProgress = i * (100 / MAX_PING_TIMES);
+                String pingResult = ping + " ms";
+                runOnUiThread(() -> {
+                    setInstantMeasurement(pingResult);
+                    setProgress(pingProgress);
+                    testCallback.OnTestBackground(pingResult, pingProgress);
+                });
+            }
+            // Verificar si más del 20% de los pings fallaron
+            if (failedPings > MAX_PING_TIMES * 0.2) {
+                runOnUiThread(() -> testCallback.OnTestFailed("Más del 20% de los pings fallaron"));
+            } else {
+                // Calcular y establecer estadísticas después de completar las mediciones
+                calculateAndSetStatistics(pingList, testCallback);
+            }
+        }).start();
+    }
+
+    /**
+     * Método auxiliar para ejecutar acciones en el hilo principal
+     */
+    private void runOnUiThread(Runnable action) {
+        new Handler(Looper.getMainLooper()).post(action);
     }
 
 
-
     private void calculateAndSetStatistics(List<Integer> pingList, TestCallback testCallback) {
-        try{
-            int averagePing = (int) pingList.stream().mapToInt( Integer:: intValue). average().orElse( 0) ;
+        try {
+            double averagePing = pingList.stream().mapToInt(Integer::intValue).average().orElse(0);
             double variance = pingList.stream().mapToDouble(ping -> Math.pow(ping - averagePing, 2)).average().orElse(0);
-        int jitter = (int) Math.sqrt(variance);
-        setFinalPing(averagePing);
-        setJitterMeasure(jitter);
-        setFinished(true);
+            int jitter = (int) Math.sqrt(variance);
+            setFinalPing((int) averagePing);
+            setJitterMeasure(jitter);
+            setFinished(true);
         } finally {
             setJitterLivedata(getJitterMeasured() + " ms");
             setFinalMeasurement(getPingMeasured() + " ms");
@@ -141,40 +179,55 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
         }
     }
 
-
-
     private int measuringPing(String chosenHost, TestCallback testCallback) {
-        int probes = 0;
-        int ping = 0;
+        int ping = ERROR_MEASURING_PING;
         if (chosenHost == null || chosenHost.isEmpty()) {
             OnTestFailed(chosenHost);
-            ping = ERROR_MEASURING_PING;
+            return ping;
         }
+
+        Process process = null;
         try {
-            Process process = new ProcessBuilder("ping", "-c", "1", "-w", String.valueOf(TIMEOUT_MS), chosenHost).start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.contains("time=") && probes <= 3) {
-                    int startIndex = line.indexOf("time=") + 5;
-                    int endIndex = line.indexOf(" ms", startIndex);
-                    ping = (int) Float.parseFloat(line.substring(startIndex, endIndex));
-                    break;
-                } else {
-                    probes++;
+            process = new ProcessBuilder("ping", "-c", "1", "-W", String.valueOf(TIMEOUT_MS / 1000), chosenHost).start();
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains("time=")) {
+                        int startIndex = line.indexOf("time=") + 5;
+                        int endIndex = line.indexOf(" ms", startIndex);
+                        ping = (int) Float.parseFloat(line.substring(startIndex, endIndex));
+                        break;
+                    }
                 }
             }
-            if (probes >= 3) {
+
+            // Espera a que el proceso termine
+            int exitValue = process.waitFor();
+            if (exitValue != 0) {
                 ping = ERROR_MEASURING_PING;
             }
-            reader.close();
-            process.destroy();
-
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            Log.e(this.getClass().getName(), "Error al ejecutar el comando ping", e);
+            testCallback.OnTestFailed(e.getMessage());
+        } catch (InterruptedException e) {
+            // Volver a interrumpir el hilo actual
+            Thread.currentThread().interrupt();
+            Log.e(this.getClass().getName(), "El hilo fue interrumpido", e);
+            testCallback.OnTestFailed("El hilo fue interrumpido: " + e.getMessage());
+        } catch (RuntimeException e) {
+            // Captura cualquier otro error que pueda ocurrir
+            Log.e(this.getClass().getName(), "Error inesperado al ejecutar el comando ping", e);
+            testCallback.OnTestFailed("Error inesperado: " + e.getMessage());
+        } finally {
+            if (process != null) {
+                process.destroy();
+            }
         }
+
         return ping;
     }
+
     /**
      * Get the instant ping measured.
      */
@@ -182,6 +235,7 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
     public MutableLiveData<String> getInstantMeasurement() {
         return instantPing;
     }
+
     /**
      * Set the instant ping measured for the ui updates.
      */
@@ -193,6 +247,7 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
 
     /**
      * Return the ping measured in string for the ui updates.
+     *
      * @return Measured ping in string
      */
     @Override
@@ -207,6 +262,7 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
 
     /**
      * Return the progress of the ping and jitter test for the ui updates.
+     *
      * @return Progress
      */
     @Override
@@ -221,16 +277,16 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
 
     @Override
     public void OnTestStart() {
-
+        // TODO document why this method is empty
     }
 
     @Override
     public void OnTestSuccess(String jitter) {
-
+        // TODO document why this method is empty
     }
 
     @Override
     public void OnTestBackground(String currentPing, int currentProgress) {
-
+        // TODO document why this method is empty
     }
 }
