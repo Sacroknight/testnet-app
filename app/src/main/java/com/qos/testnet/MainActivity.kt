@@ -46,6 +46,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        if(!requestPermissions?.hasWriteStoragePermissions()!! || !requestPermissions?.hasReadStoragePermissions()!!) {
+            requestPermissions!!.requestWriteStoragePermissions()
+            requestPermissions!!.requestReadStoragePermissions()
+        }
+
         if (mAuth.currentUser == null) {
             singInAnonymously()
         } else {

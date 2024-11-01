@@ -13,6 +13,7 @@ import com.qos.testnet.ui.home.HomeViewModel.Companion.deviceInfo
 import com.qos.testnet.ui.home.HomeViewModel.Companion.instantMeasurements
 import com.qos.testnet.ui.home.HomeViewModel.Companion.jitterMeasurement
 import com.qos.testnet.ui.home.HomeViewModel.Companion.progress
+import com.qos.testnet.ui.home.HomeViewModel.Companion.visibilityOfProgress
 
 /**
  * The Home fragment.
@@ -32,13 +33,13 @@ class HomeFragment : Fragment() {
         val root: View = binding.root
 
         val factory = HomeViewModelFactory(requireContext())
-        val homeViewModel = ViewModelProvider(this, factory).
-        get(HomeViewModel::class.java)
+        val homeViewModel = ViewModelProvider(this, factory).get(HomeViewModel::class.java)
 
         binding.startButton.setOnClickListener {
             binding.startButton.isEnabled = false
-            binding.testProgressIndicator.visibility = View.VISIBLE
             homeViewModel.startTasks()
+            binding.deviceInformation.gravity = View.TEXT_ALIGNMENT_CENTER
+            binding.deviceInformation.text = "Corriendo test de velocidad"
         }
 
         // Observe the instant measurements and update the UI accordingly
@@ -60,8 +61,14 @@ class HomeFragment : Fragment() {
         progress.observe(viewLifecycleOwner) { progress: Int? ->
             binding.testProgressIndicator.progress = progress!!
         }
+
         jitterMeasurement.observe(viewLifecycleOwner) {}
+
+        visibilityOfProgress.observe(viewLifecycleOwner) { visibility: Int? ->
+            binding.testProgressIndicator.visibility = visibility ?: View.INVISIBLE
+        }
         return root
+
     }
 
     override fun onDestroyView() {

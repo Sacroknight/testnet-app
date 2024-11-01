@@ -1,4 +1,4 @@
-package com.qos.testnet.utils.deviceInformation
+package com.qos.testnet.utils.deviceinformation
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -18,14 +18,14 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
 
-class LocationInfo(private val context: Context){
+class LocationInfo(private val context: Context) {
     private val client: OkHttpClient = OkHttpClient()
     var currentLongitudeGPS: Double? = LOCATION_NOT_FOUND
     var currentLatitudeGPS: Double? = LOCATION_NOT_FOUND
-    var currentLatitudeNetwork:Double? = LOCATION_NOT_FOUND
-    var currentLongitudeNetwork:Double? = LOCATION_NOT_FOUND
-    var currentLatitudeApi:Double? = LOCATION_NOT_FOUND
-    var currentLongitudeApi:Double? = LOCATION_NOT_FOUND
+    var currentLatitudeNetwork: Double? = LOCATION_NOT_FOUND
+    var currentLongitudeNetwork: Double? = LOCATION_NOT_FOUND
+    var currentLatitudeApi: Double? = LOCATION_NOT_FOUND
+    var currentLongitudeApi: Double? = LOCATION_NOT_FOUND
     private val requestPermissions = RequestPermissions(context)
 
     @JvmField
@@ -66,7 +66,8 @@ class LocationInfo(private val context: Context){
         handler.postDelayed({
             if (!isClosedForSend) {
                 // If we didn't get a GPS location, try from the network provider.
-                val lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                val lastKnownLocation =
+                    locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
                 lastKnownLocation?.let {
                     trySend(it).isSuccess
                     currentLatitudeNetwork = (it.latitude as? Double) ?: -1.0
@@ -90,7 +91,8 @@ class LocationInfo(private val context: Context){
             if (!response.isSuccessful) throw IOException("Unexpected code $response")
             if (response.code == 401) throw AuthenticationException("Unauthorized API request")
 
-            val responseData = response.body?.string() ?: throw NullPointerException("Response body is null")
+            val responseData =
+                response.body?.string() ?: throw NullPointerException("Response body is null")
 
             val locationInfo = JSONObject(responseData)
             val longitude = locationInfo.getDouble("longitude")
@@ -101,6 +103,7 @@ class LocationInfo(private val context: Context){
             return Pair(latitude, longitude)
         }
     }
+
     companion object {
         private const val LOCATION_NOT_FOUND = -1.0
         private const val NETWORK_LOCATION_NOT_FOUND = "Network location not found"
@@ -108,7 +111,7 @@ class LocationInfo(private val context: Context){
         private const val ERROR_RETRIEVING_LOCATION = "Error retrieving location"
         const val API_URL: String =
             "https://api.ip2location.io/?key=30ABFB42A85F6E2C877172679CC6DD48&format=json"
-        private const val MIN_TIME_BW_UPDATES  = 1000L
+        private const val MIN_TIME_BW_UPDATES = 1000L
         private const val MIN_DISTANCE_CHANGE_FOR_UPDATES = 200F
     }
 }

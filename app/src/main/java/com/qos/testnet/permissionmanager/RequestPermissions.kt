@@ -6,7 +6,6 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.qos.testnet.R
@@ -28,7 +27,7 @@ class RequestPermissions(private val context: Context) {
                 ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun hasReadPhonePermissions(): Boolean {
+    fun hasReadPhonePermissions(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
                 context,
@@ -46,7 +45,13 @@ class RequestPermissions(private val context: Context) {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.DONUT)
+    fun hasNetworkStatePermissions(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_NETWORK_STATE
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
     fun hasWriteStoragePermissions(): Boolean {
         return ContextCompat.checkSelfPermission(
             context,
@@ -54,7 +59,6 @@ class RequestPermissions(private val context: Context) {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
     fun hasReadStoragePermissions(): Boolean {
         return ContextCompat.checkSelfPermission(
             context,
@@ -62,7 +66,6 @@ class RequestPermissions(private val context: Context) {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    @RequiresApi(Build.VERSION_CODES.DONUT)
     fun requestWriteStoragePermissions() {
         ActivityCompat.requestPermissions(
             (context as Activity),
@@ -71,7 +74,6 @@ class RequestPermissions(private val context: Context) {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN)
     fun requestReadStoragePermissions() {
         ActivityCompat.requestPermissions(
             (context as Activity),
@@ -93,17 +95,22 @@ class RequestPermissions(private val context: Context) {
         )
     }
 
-    private fun requestReadPhonePermissions() {
+    fun requestReadPhonePermissions() {
+        ActivityCompat.requestPermissions(
+            context as Activity,
+            arrayOf(Manifest.permission.ACCESS_NETWORK_STATE),
+            REQUEST_ACCESS_NETWORK_STATE
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ActivityCompat.requestPermissions(
-                (context as Activity), arrayOf(
+                context, arrayOf(
                     Manifest.permission.READ_PHONE_STATE,
                     Manifest.permission.READ_BASIC_PHONE_STATE
                 ), REQUEST_READ_PHONE_PERMISSION
             )
         } else {
             ActivityCompat.requestPermissions(
-                (context as Activity),
+                context,
                 arrayOf(Manifest.permission.READ_PHONE_STATE),
                 REQUEST_READ_PHONE_PERMISSION
             )
@@ -155,15 +162,15 @@ class RequestPermissions(private val context: Context) {
         val dontAskAgain = booleanArrayOf(false)
 
         AlertDialog.Builder(context)
-            .setTitle(context.getString(R.string.permission_warning_title))
-            .setMessage(context.getString(R.string.permission_warning_message))
+            .setTitle(context.getString(R.string.permissions_Needed))
+            .setMessage(context.getString(R.string.permissions_Needed_Dialog))
             .setMultiChoiceItems(
                 arrayOf(context.getString(R.string.dont_Ask_Again)),
                 dontAskAgain
             ) { _, _, isChecked ->
                 dontAskAgain[0] = isChecked
             }
-            .setPositiveButton(context.getString(R.string.continue_label)) { dialog, _ ->
+            .setPositiveButton(context.getString(R.string.continue_Without_Permission)) { dialog, _ ->
                 CoroutineScope(Dispatchers.IO).launch {
                     permissionPreferences.savePermissionPreference(
                         context,
@@ -178,7 +185,7 @@ class RequestPermissions(private val context: Context) {
                 }
                 dialog.dismiss()
             }
-            .setNegativeButton(context.getString(R.string.grant_permissions_label)) { dialog, _ ->
+            .setNegativeButton(context.getString(R.string.grant_Permission)) { dialog, _ ->
                 dialog.dismiss()
                 requestLocationPermissions()
                 requestReadPhonePermissions()
@@ -189,5 +196,6 @@ class RequestPermissions(private val context: Context) {
     companion object {
         const val REQUEST_LOCATION_PERMISSION: Int = 69
         const val REQUEST_READ_PHONE_PERMISSION: Int = 88
+        const val REQUEST_ACCESS_NETWORK_STATE: Int = 89
     }
 }
