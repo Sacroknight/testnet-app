@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 
 public class PingAndJitterStats implements InternetTest, TestCallback {
@@ -146,13 +147,14 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
                     testCallback.OnTestBackground(pingResult, pingProgress);
                 });
             }
-            // Verificar si más del 20% de los pings fallaron
-            if (failedPings > MAX_PING_TIMES * 0.2) {
-                runOnUiThread(() -> testCallback.OnTestFailed("Más del 20% de los pings fallaron"));
-            } else {
-                // Calcular y establecer estadísticas después de completar las mediciones
-                calculateAndSetStatistics(pingList, testCallback);
-            }
+//            // Verificar si más del 20% de los pings fallaron
+//            if (failedPings > MAX_PING_TIMES * 0.2) {
+//                runOnUiThread(() -> testCallback.OnTestFailed("Más del 20% de los pings fallaron"));
+//            } else {
+//                // Calcular y establecer estadísticas después de completar las mediciones
+            calculateAndSetStatistics(pingList, testCallback);
+            Log.d(this.getClass().getName(), "Finished measuring ping and jitter, the number of packets lost is: " + failedPings);
+//           }
         }).start();
     }
 
@@ -166,7 +168,8 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
 
     private void calculateAndSetStatistics(List<Integer> pingList, TestCallback testCallback) {
         try {
-            double averagePing = pingList.stream().mapToInt(Integer::intValue).average().orElse(0);
+            List<Integer> depuredPingList = pingList.stream().filter(ping -> ping != 0).collect(Collectors.toList());
+            double averagePing = depuredPingList.stream().mapToInt(Integer::intValue).average().orElse(0);
             double variance = pingList.stream().mapToDouble(ping -> Math.pow(ping - averagePing, 2)).average().orElse(0);
             int jitter = (int) Math.sqrt(variance);
             setFinalPing((int) averagePing);
@@ -180,7 +183,7 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
     }
 
     private int measuringPing(String chosenHost, TestCallback testCallback) {
-        int ping = ERROR_MEASURING_PING;
+        int ping = 0;
         if (chosenHost == null || chosenHost.isEmpty()) {
             OnTestFailed(chosenHost);
             return ping;
