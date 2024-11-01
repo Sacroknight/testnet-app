@@ -18,23 +18,6 @@ data class TestData(
     var velocidadDeCarga: Double = 0.0,
     var velocidadDeDescarga: Double = 0.0
 ) {
-    // Constructor sin argumentos
-    constructor() : this(
-        dispositivo = "",
-        fecha = "",
-        idVersionAndroid = 0,
-        intensidadDeSenal = 0,
-        jitter = 0,
-        operadorDeRed = "",
-        ping = 0,
-        redScore = 0.0,
-        servidor = "",
-        tipoDeRed = "",
-        ubicacion = "",
-        userId = "",
-        velocidadDeCarga = 0.0,
-        velocidadDeDescarga = 0.0
-    )
 
     // Funciones para obtener los valores formateados
     fun getFormattedRedScore(): String {
@@ -49,7 +32,7 @@ data class TestData(
         return formatDouble(velocidadDeDescarga)
     }
 
-    private fun formatDouble(value: Double): String {
+    private fun formatDouble(value: Number): String {
         val df = DecimalFormat("#.00")
         return df.format(value)
     }
