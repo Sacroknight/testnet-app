@@ -50,6 +50,9 @@ class MainActivity : AppCompatActivity() {
             requestPermissions!!.requestWriteStoragePermissions()
             requestPermissions!!.requestReadStoragePermissions()
         }
+        if(!requestPermissions?.hasReadPhonePermissions()!! || !requestPermissions?.hasNetworkStatePermissions()!!) {
+            requestPermissions!!.requestReadPhonePermissions()
+        }
 
         if (mAuth.currentUser == null) {
             singInAnonymously()
