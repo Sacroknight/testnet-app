@@ -1,5 +1,6 @@
 package com.qos.testnet.tests;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 
 import androidx.lifecycle.MutableLiveData;
@@ -25,7 +26,7 @@ import okhttp3.Response;
 public class UploadSpeedStats implements InternetTest, TestCallback {
     private static final int BUFFER_SIZE = 1024 * 1024; // 1 MB
     private static final int THREAD_COUNT = 4;
-    private static final int ITERATIONS = 100;
+    private static final int ITERATIONS = 25;
     /**
      * The Start time.
      */
@@ -140,9 +141,14 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
         instantaneousMeasurementsLiveData = new MutableLiveData<>();
         finalUploadRateLiveData = new MutableLiveData<>();
         instantUploadRateForUI = new MutableLiveData<>();
-        client = new OkHttpClient();
+        client = new OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build();
     }
 
+    @SuppressLint("DefaultLocale")
     public void runUploadSpeedTest(TestCallback testCallback, String url) {
         try {
             uploadedBytes = 0;
@@ -164,13 +170,15 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
                             testCallback.OnTestBackground(String.format("%.2f Mb/s", getInstantUploadRate()), roundInt(getInstantUploadRate()));
                         }
                     } catch (IOException ex) {
-                        Log.e(String.valueOf(R.string.uploadspeedstats_class_name), "Error during upload speed test", ex);
+                        String errorMessage = "Error during upload speed test: " + ex.getMessage();
+                        Log.e(this.getClass().getTypeName(), errorMessage, ex);
                     }
                 });
             }
             executor.shutdown();
-            if (!executor.awaitTermination(4, TimeUnit.MINUTES)) {
-                Log.e(String.valueOf(R.string.uploadspeedstats_class_name), "Executor did not terminate in the specified time.");
+            if (!executor.awaitTermination(45, TimeUnit.SECONDS)) {
+                String timeoutMessage = "Test exceeded the maximum duration of 45 seconds.";
+                Log.e(this.getClass().getTypeName(), timeoutMessage);
                 executor.shutdownNow(); // Attempt to stop all actively executing tasks
             }
             endTime = System.currentTimeMillis();
@@ -179,7 +187,8 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
             setFinalMeasurement(finalUploadRate + " Mb/s");
 
         } catch (InterruptedException e) {
-            Log.e(String.valueOf(R.string.uploadspeedstats_class_name), "Error during upload speed test", e);
+            String errorMessage = "Error during upload speed test: " + e.getMessage();
+            Log.e(this.getClass().getTypeName(), errorMessage, e);
             Thread.currentThread().interrupt();
         } finally {
             finished = true;
@@ -190,7 +199,7 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
     private void isResponseSuccessful(Response response, TestCallback testCallback) {
         if (!response.isSuccessful()) {
             String errorMessage = "Unexpected code " + response + ": " + response.message();
-            Log.e(String.valueOf(R.string.uploadspeedstats_class_name), errorMessage);
+            Log.e(this.getClass().getTypeName(), errorMessage);
             testCallback.OnTestFailed(errorMessage);
         }
     }

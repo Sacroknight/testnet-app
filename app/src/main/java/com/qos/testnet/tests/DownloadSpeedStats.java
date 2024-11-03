@@ -170,19 +170,21 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
                         /*
                          * The Timeout.
                          */
-                        int timeOut = 15;
-                        if (downloadElapsedTime >= timeOut) {
+                        if (downloadElapsedTime >= 45) {
+                            Log.i(this.getClass().getTypeName(), "Test exceeded the maximum duration of 30 seconds.");
                             break;
                         }
                     }
                 } catch (Exception ex) {
-                    Log.e(String.valueOf(R.string.downloadspeedstats_class_name), "Error during download speed test", ex);
+                    String errorMessage = "Error during download speed test: " + ex.getMessage();
+                    Log.e(this.getClass().getTypeName(), errorMessage, ex);
+                    testCallback.OnTestFailed(errorMessage);
                 } finally {
                     if (inputStream != null) {
                         try {
                             inputStream.close(); // Aseguramos que el flujo de entrada se cierre.
                         } catch (IOException e) {
-                            Log.e(String.valueOf(R.string.downloadspeedstats_class_name), "Error Closing inputStream", e);
+                            Log.e(this.getClass().getTypeName(), "Error Closing inputStream", e);
                         }
                     }
                     if (response != null) {
@@ -204,7 +206,7 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
     private void isResponseSuccessful(Response response, TestCallback testCallback) {
         if (!response.isSuccessful()) {
             String errorMessage = "Unexpected code " + response + ": " + response.message();
-            Log.e(String.valueOf((R.string.downloadspeedstats_class_name)), errorMessage);
+            Log.e(this.getClass().getTypeName(), errorMessage);
             testCallback.OnTestFailed(errorMessage);
         }
     }
