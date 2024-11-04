@@ -24,7 +24,11 @@ import androidx.annotation.Nullable;
 
 import com.qos.testnet.permissionmanager.RequestPermissions;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
 /*
   Class responsible for obtaining and storing device information.
@@ -69,10 +73,6 @@ public class DeviceInformation {
 
     public void setManufacturer() {
         this.manufacturer = Build.MANUFACTURER;
-    }
-
-    public String getNetworkType() {
-        return networkType;
     }
 
     public void setNetworkType(String network) {
@@ -127,31 +127,37 @@ public class DeviceInformation {
 
     private void gettingSignalStrength() {
         TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        // Verificación de permisos
         if (!requestPermissions.hasReadPhonePermissions() || !requestPermissions.hasNetworkStatePermissions()) {
             requestPermissions.requestReadPhonePermissions();
             return;
         }
-        if (telephonyManager != null) {
-            try {
-                CellInfo activeCellInfo = getCellInfo(telephonyManager);
 
-                if (activeCellInfo != null) {
-                    setCarrier(telephonyManager.getNetworkOperatorName());
-                    measureSignalStrength(activeCellInfo);
-                } else {
-                    setSignalStrength(NETWORK_TYPE_UNKNOWN_OR_INACTIVE);
-                }
+        if (telephonyManager == null || connectivityManager == null) {
+            Log.e(this.getClass().getTypeName(), "TelephonyManager o ConnectivityManager no disponibles.");
+            return;
+        }
 
-                ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-                if (connectivityManager != null) {
-                    NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(connectivityManager.getActiveNetwork());
-                    if (networkCapabilities == null || !networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                        setSignalStrength(NETWORK_TYPE_UNKNOWN_OR_INACTIVE);
-                    }
-                }
-            } catch (Exception e) {
-                Log.e("DeviceInformation", "Error al obtener la señal de red: " + e.getMessage());
+        try {
+            // Obtener capacidades de red
+            NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(connectivityManager.getActiveNetwork());
+            if (networkCapabilities == null || !networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                setSignalStrength(NETWORK_TYPE_UNKNOWN_OR_INACTIVE);
+                return;
             }
+            CellInfo activeCellInfo = getCellInfo(telephonyManager);
+            if (activeCellInfo != null) {
+                measureSignalStrength(activeCellInfo);
+            } else {
+                setSignalStrength(NETWORK_TYPE_UNKNOWN_OR_INACTIVE);
+            }
+
+        } catch (SecurityException se) {
+            Log.e(this.getClass().getTypeName(), "Permiso insuficiente para acceder a la información de la red: " + se.getMessage());
+        } catch (Exception e) {
+            Log.e(this.getClass().getTypeName(), "Error al obtener la señal de red: " + e.getMessage());
         }
     }
 
@@ -206,8 +212,14 @@ public class DeviceInformation {
                 NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
 
                 if (networkCapabilities != null && networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                    @SuppressLint("MissingPermission") int networkTypeNumber = telephonyManager.getDataNetworkType(); // Use getDataNetworkType() instead
-                    return getNetworkTypeName(networkTypeNumber);
+                    if (requestPermissions.hasReadPhonePermissions()) {
+                        @SuppressLint("MissingPermission") int networkTypeNumber = telephonyManager.getDataNetworkType(); // Use getDataNetworkType() instead
+                        return getNetworkTypeName(networkTypeNumber);
+                    } else {
+                        requestPermissions.hasReadPhonePermissions();
+                        return String.valueOf(RequestPermissions.REQUEST_READ_PHONE_PERMISSION);
+                    }
+
                 } else if (networkCapabilities != null && networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
                     return "WiFi";
                 }
@@ -240,5 +252,34 @@ public class DeviceInformation {
                 return String.valueOf(NETWORK_TYPE_UNKNOWN_OR_INACTIVE);
         }
     }
+
+    public void updateNetworkInfo() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+
+        Network activeNetwork = connectivityManager.getActiveNetwork();
+        NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
+
+        if (networkCapabilities != null && networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+            String operatorName = telephonyManager.getSimOperatorName();
+            setCarrier(operatorName);
+            Log.d(this.getClass().getTypeName(), "Updated Carrier: " + operatorName);
+        } else {
+            Log.d(this.getClass().getTypeName(), "No cellular network detected");
+        }
+    }
+
+    /**
+     * Gets the current date and time in the specified format.
+     *
+     * @return the current date and time as a string in the format "dd-MM-yyyy'T'HH:mm:ss.SSSXXX"
+     */
+    public String getCurrentDateTime() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss.SSSXXX", new Locale("es", "CO"));
+        // Cambiar la zona horaria a la de Bogotá
+        dateFormat.setTimeZone(TimeZone.getTimeZone("America/Bogota"));
+        return dateFormat.format(new Date());
+    }
+
 }
 
