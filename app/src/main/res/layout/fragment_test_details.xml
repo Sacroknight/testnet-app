@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.notifications.details.TestDetailsFragment"
+    android:orientation="vertical"
+    >
+
+    <TextView
+        android:id="@+id/textViewDispositivo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dispositivo:"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="@dimen/normal_text"
+
+
+        />
+
+    <TextView
+        android:id="@+id/textViewFecha"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Fecha:"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewIdVersionAndroid"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Versión Android:"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewIntensidadDeSenal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Intensidad de Señal:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewJitter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Jitter:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewOperadorDeRed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Operador de Red:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewPing"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ping:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewRedScore"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Red Score:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewServidor"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Servidor:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewTipoDeRed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tipo de Red:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewUbicacion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ubicación:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewUserId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="User ID:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewVelocidadDeCarga"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Velocidad de Carga:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+    <TextView
+        android:id="@+id/textViewVelocidadDeDescarga"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Velocidad de Descarga:"
+        android:textColor="@color/material_dynamic_primary10"
+        android:textSize="@dimen/normal_text" />
+
+</LinearLayout>

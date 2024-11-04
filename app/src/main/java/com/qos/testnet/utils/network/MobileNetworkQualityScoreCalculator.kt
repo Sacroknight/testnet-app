@@ -4,63 +4,63 @@ import android.util.Log
 
 class MobileNetworkQualityScoreCalculator {
 
-    companion object {
-        private const val MAX_PING_SCORE = 40.0
-        private const val MAX_DOWNLOAD_SCORE = 35.0
-        private const val MAX_UPLOAD_SCORE = 25.0
+    var pingScore = 0.0
+    var jitterAdjustmentFactor = 0.0
+    var downloadScore = 0.0
+    var uploadScore = 0.0
+    var signalStrengthAdjustmentFactor = 0.0
 
-        private const val PING_THRESHOLD_1 = 90.0
-        private const val PING_THRESHOLD_2 = 1000.0
-        private const val PING_THRESHOLD_3 = 4000.0
+    private fun calcPing(pingValue: Int, jitterValue: Int): Double {
+        require(pingValue >= 0) { "Ping value must be non-negative" }
+        require(jitterValue >= 0) { "Jitter value must be non-negative" }
 
-        private const val JITTER_THRESHOLD_1 = 30.0
-        private const val JITTER_THRESHOLD_2 = 50.0
-        private const val JITTER_THRESHOLD_3 = 500.0
+        Log.d("MobileNetworkQualityScoreCalculator", "Ping: $pingValue, Jitter: $jitterValue")
 
-        private const val SIGNAL_STRENGTH_MIN = -112.0
-        private const val SIGNAL_STRENGTH_MAX = -51.0
-
-        private fun calcPing(mP: Int, mJ: Int): Double {
-            require(mP >= 0) { "Ping value must be non-negative" }
-            require(mJ >= 0) { "Jitter value must be non-negative" }
-
-            val pingScore = when {
-                mJ < JITTER_THRESHOLD_1 -> when {
-                    mP < PING_THRESHOLD_1 -> MAX_PING_SCORE
-                    mP <= PING_THRESHOLD_2 -> MAX_PING_SCORE * ((-0.875 / 910) * mP + 1.06159)
-                    mP <= PING_THRESHOLD_3 -> MAX_PING_SCORE * ((-0.1 / 2999) * mP + 0.13337)
-                    else -> 0.0
-                }
-
-                mJ <= JITTER_THRESHOLD_2 -> MAX_PING_SCORE * 0.9 // Reduce score due to jitter
-                mJ <= JITTER_THRESHOLD_3 -> MAX_PING_SCORE * ((-1 / JITTER_THRESHOLD_3) * mJ + 1)
-                else -> 0.0 // En caso de que mJ sea mayor que JITTER_THRESHOLD_3
-            }
-
-            return pingScore.coerceAtLeast(0.0) // Asegura que el puntaje no sea negativo
+        pingScore = when {
+            pingValue < PING_THRESHOLD_1 -> MAX_PING_SCORE
+            pingValue <= PING_THRESHOLD_2 -> MAX_PING_SCORE * ((-0.875 / 910) * pingValue + 1.06159)
+            pingValue <= PING_THRESHOLD_3 -> MAX_PING_SCORE * ((-0.1 / 2999) * pingValue + 0.13337)
+            else -> 0.0
         }
 
-        private fun calcDownloadSpeed(mV: Double): Double {
-            require(mV >= 0) { "Download speed must be non-negative" }
-
-            return when {
-                mV < 0.5 -> 0.0
-                mV in 0.5..1.0 -> 1.0
-                mV <= 25 -> (0.97143 / 24.5) * MAX_DOWNLOAD_SCORE * mV
-                else -> MAX_DOWNLOAD_SCORE
-            }
+        jitterAdjustmentFactor = when {
+            jitterValue <= JITTER_THRESHOLD_1 -> 1.0 // No adjustment
+            jitterValue <= JITTER_THRESHOLD_2 -> 0.9 // Reduce score due to jitter
+            jitterValue <= JITTER_THRESHOLD_3 -> (-1 / JITTER_THRESHOLD_3) * jitterValue + 1.0
+            else -> 0.0 // Severe jitter case, score is 0
         }
 
-        private fun calcUploadSpeed(mVc: Double): Double {
-            require(mVc >= 0) { "Upload speed must be non-negative" }
+        // Calculate final score taking into account jitter
+        val pingScoreWithBonus = pingScore * jitterAdjustmentFactor
 
-            return when {
-                mVc < 0.5 -> 0.0
-                mVc in 0.5..1.0 -> 1.0
-                mVc <= 15 -> (0.96 / 14.5) * MAX_UPLOAD_SCORE * mVc
-                else -> MAX_UPLOAD_SCORE
-            }
+        return pingScoreWithBonus.coerceAtLeast(0.0) // Ensure score is non-negative
+    }
+
+    private fun calcDownloadSpeed(mV: Double): Double {
+        require(mV >= 0) { "Download speed must be non-negative" }
+
+        downloadScore = when {
+            mV < 0.5 -> 0.0
+            mV in 0.5..1.0 -> 1.0
+            mV <= 25 -> (0.97143 / 24.5) * MAX_DOWNLOAD_SCORE * mV
+            else -> MAX_DOWNLOAD_SCORE
         }
+
+        return downloadScore
+    }
+
+    private fun calcUploadSpeed(mVc: Double): Double {
+        require(mVc >= 0) { "Upload speed must be non-negative" }
+
+        uploadScore = when {
+            mVc < 0.5 -> 0.0
+            mVc in 0.5..1.0 -> 1.0
+            mVc <= 15 -> (0.96 / 24.5) * MAX_UPLOAD_SCORE * mVc
+            else -> MAX_UPLOAD_SCORE
+        }
+
+        return uploadScore
+    }
 
 //        private fun calcSignalStrength(mI: Double): Double {
 //            require(mI in SIGNAL_STRENGTH_MIN..SIGNAL_STRENGTH_MAX) {
@@ -76,43 +76,58 @@ class MobileNetworkQualityScoreCalculator {
 //            }
 //        }
 
-        private fun applyBonusPenalty(score: Double, signalStrength: Int): Double {
-            if (signalStrength <= SIGNAL_STRENGTH_MAX && signalStrength >= SIGNAL_STRENGTH_MIN) {
-                val finalScore = when {
-                    signalStrength == -1 -> score
-                    signalStrength >= (20 / 3.0) && signalStrength < 9 && score < (200 / 3.0) -> score * 0.95 // 5% penalty
-                    signalStrength >= 9 && score < (200 / 3.0) -> score * 0.9 // 10% penalty
-                    signalStrength < (20 / 3.0) && signalStrength >= (10 / 3.0) && score >= (200 / 3.0) -> score * 1.05 // 5% bonus
-                    signalStrength <= (10 / 3.0) && score >= (200 / 3.0) -> score * 1.1 // 10% bonus
-                    else -> score
-                }
-                Log.d("MobileNetworkQualityScoreCalculator", "Final score: $finalScore")
-                return finalScore.coerceIn(0.0, 100.0)
+    private fun applyBonusPenalty(score: Double, signalStrength: Int): Double {
+        if (signalStrength <= SIGNAL_STRENGTH_MAX && signalStrength >= SIGNAL_STRENGTH_MIN) {
+            signalStrengthAdjustmentFactor = when {
+                signalStrength == -1 -> score// No adjustment
+                (signalStrength in -80 downTo -95) && score < (200 / 3.0) -> 0.95 // 5% penalty
+                (signalStrength in -51 downTo -79) && score < (200 / 3.0) -> 0.9 // 10% penalty
+                (signalStrength in -96 downTo -104) && score >= (200 / 3.0) -> 1.05 // 5% bonus
+                (signalStrength in -105 downTo -112) && score >= (200 / 3.0) -> 1.1 // 10% bonus
+                else -> 1.0 //error with the signal strength received
             }
-            // Si el signalStrength es inválido, se registra un error y se retorna el score original
-            Log.e(
-                "MobileNetworkQualityScoreCalculator",
-                "Invalid signal strength value: $signalStrength"
-            )
-            return score
+            Log.d(javaClass.typeName, "Signal strength: $signalStrength")
+            val finalScore = score * signalStrengthAdjustmentFactor
+            Log.d(javaClass.typeName, "Final score: $finalScore")
+            return finalScore.coerceIn(0.0, 100.0)
         }
+        // Si el signalStrength es inválido, se registra un error y se retorna el score original
+        Log.e(
+            "MobileNetworkQualityScoreCalculator",
+            "Invalid signal strength value: $signalStrength"
+        )
+        return score
+    }
 
-        fun calculateOverallScore(
-            ping: Int,
-            jitter: Int,
-            downloadSpeed: Double,
-            uploadSpeed: Double,
-            signalStrength: Int
-        ): Double {
-            val pingScore = calcPing(ping, jitter)
-            val downloadScore = calcDownloadSpeed(downloadSpeed)
-            val uploadScore = calcUploadSpeed(uploadSpeed)
+    fun calculateOverallScore(
+        ping: Int,
+        jitter: Int,
+        downloadSpeed: Double,
+        uploadSpeed: Double,
+        signalStrength: Int
+    ): Double {
+        val pingScore = calcPing(ping, jitter)
+        val downloadScore = calcDownloadSpeed(downloadSpeed)
+        val uploadScore = calcUploadSpeed(uploadSpeed)
 //            val signalStrengthScore = calcSignalStrength(signalStrength)
 
-            var totalScore = pingScore + downloadScore + uploadScore
-            totalScore = applyBonusPenalty(totalScore, signalStrength)
+        var totalScore = pingScore + downloadScore + uploadScore
+        totalScore = applyBonusPenalty(totalScore, signalStrength)
 
-            return totalScore
-        }
+        return totalScore
+    }
+
+    companion object {
+        private const val MAX_PING_SCORE = 40.0
+        private const val MAX_DOWNLOAD_SCORE = 35.0
+        private const val PING_THRESHOLD_1 = 90.0
+        private const val MAX_UPLOAD_SCORE = 25.0
+        private const val PING_THRESHOLD_2 = 1000.0
+        private const val JITTER_THRESHOLD_1 = 30.0
+        private const val PING_THRESHOLD_3 = 4000.0
+        private const val JITTER_THRESHOLD_2 = 50.0
+        private const val SIGNAL_STRENGTH_MIN = -112.0
+        private const val JITTER_THRESHOLD_3 = 500.0
+        private const val SIGNAL_STRENGTH_MAX = -51.0
     }
 }

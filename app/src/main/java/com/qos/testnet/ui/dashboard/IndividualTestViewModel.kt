@@ -56,8 +56,6 @@ class IndividualTestViewModel(individualContext: Context) : ViewModel() {
         }
     }
 
-
-
     fun sendDataRealtimeDataBase(data: TestData) {
         database.push().setValue(data).addOnCompleteListener { task ->
             if (task.isSuccessful) {

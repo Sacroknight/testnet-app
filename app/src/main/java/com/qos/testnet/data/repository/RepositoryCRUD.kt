@@ -17,6 +17,9 @@ class RepositoryCRUD(
 
 
     suspend fun fetchData(userId: String): List<TestData> {
+        if (userId.isEmpty() || userId.contentEquals("-1")) {
+            return emptyList()
+        }
         val collectionRef = firestore.collection("test_results")
         val querySnapshot = collectionRef.whereEqualTo("userId", userId).get().await()
         return querySnapshot.documents.mapNotNull { document ->
@@ -29,7 +32,7 @@ class RepositoryCRUD(
             context,
             PermissionPreferences.PermissionPreferencesKeys.USER_ID
         )
-        if (userLocal.isNotEmpty() || !userLocal.contentEquals("User not found")) {
+        if (userLocal.isNotEmpty() || !userLocal.contentEquals("-1")) {
             return userLocal
         }
         return getUserIdFromFirebase()

@@ -129,32 +129,45 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
     public void measuringPingJitter(final String chosenHost, final TestCallback testCallback) {
         new Thread(() -> {
             List<Integer> pingList = new ArrayList<>();
-            for (int i = 0; i < MAX_PING_TIMES; i++) {
+            for (int i = 0; i < MAX_PING_TIMES || pingList.size() <= MAX_PING_TIMES/2; i++) {
                 int ping = measuringPing(chosenHost, testCallback);
-                pingList.add(ping);
-
-                // Contar pings fallidos o que tardan más de 5 segundos
+                // Reintentar si el ping falla
                 if (ping == ERROR_MEASURING_PING || ping > TIMEOUT_MS) {
                     failedPings++;
+                    // Intentar nuevamente si el ping falla
+                    ping = measuringPing(chosenHost, testCallback);
+                } else {
+                    pingList.add(ping);
                 }
 
                 // Actualiza la interfaz de usuario en el hilo principal
                 int pingProgress = i * (100 / MAX_PING_TIMES);
                 String pingResult = ping + " ms";
                 runOnUiThread(() -> {
-                    setInstantMeasurement(pingResult);
                     setProgress(pingProgress);
-                    testCallback.OnTestBackground(pingResult, pingProgress);
+                    if (pingResult.contains("-1")) {
+                        if (!pingList.isEmpty()){
+                            testCallback.OnTestBackground(pingList.get(pingList.size() - 1) + " ms", pingProgress);
+                        }else{
+                            testCallback.OnTestBackground("", pingProgress);
+                        }
+                    } else {
+                        testCallback.OnTestBackground(pingResult, pingProgress);
+                    }
                 });
+
+                // Introduce un pequeño retraso entre pings
+                try {
+                    Thread.sleep(150); // 100 ms de espera
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    Log.e(this.getClass().getName(), "El hilo fue interrumpido", e);
+                    testCallback.OnTestFailed("El hilo fue interrumpido: " + e.getMessage());
+                    return;
+                }
             }
-//            // Verificar si más del 20% de los pings fallaron
-//            if (failedPings > MAX_PING_TIMES * 0.2) {
-//                runOnUiThread(() -> testCallback.OnTestFailed("Más del 20% de los pings fallaron"));
-//            } else {
-//                // Calcular y establecer estadísticas después de completar las mediciones
             calculateAndSetStatistics(pingList, testCallback);
             Log.d(this.getClass().getName(), "Finished measuring ping and jitter, the number of packets lost is: " + failedPings);
-//           }
         }).start();
     }
 
@@ -170,7 +183,7 @@ public class PingAndJitterStats implements InternetTest, TestCallback {
         try {
             List<Integer> depuredPingList = pingList.stream().filter(ping -> ping != 0).collect(Collectors.toList());
             double averagePing = depuredPingList.stream().mapToInt(Integer::intValue).average().orElse(0);
-            double variance = pingList.stream().mapToDouble(ping -> Math.pow(ping - averagePing, 2)).average().orElse(0);
+            double variance = depuredPingList.stream().mapToDouble(ping -> Math.pow(ping - averagePing, 2)).average().orElse(0);
             int jitter = (int) Math.sqrt(variance);
             setFinalPing((int) averagePing);
             setJitterMeasure(jitter);

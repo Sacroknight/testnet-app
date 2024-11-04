@@ -47,7 +47,7 @@ class PermissionPreferences private constructor() {
 
     suspend fun getUserId(context: Context, key: Preferences.Key<String>): String {
         return context.permissionDataStore.data.map { preferences ->
-            preferences[key] ?: "User not found"
+            preferences[key] ?: "-1"
         }.first()
     }
 

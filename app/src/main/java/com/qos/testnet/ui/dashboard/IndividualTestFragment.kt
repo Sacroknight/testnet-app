@@ -31,8 +31,9 @@ class IndividualTestFragment : Fragment() {
         val individualTestViewModel =
             ViewModelProvider(this, factory)[IndividualTestViewModel::class.java]
 
-        // Configuración de las vistas y observadores
-        binding.textDashboard.text = individualTestViewModel.text.value
+        lifecycleScope.launch {
+            individualTestViewModel.fetchData()
+        }
 
         adapter = AdapterResults()
         binding.recyclerView.adapter = adapter
@@ -40,32 +41,6 @@ class IndividualTestFragment : Fragment() {
 
         individualTestViewModel.fetchedData.observe(viewLifecycleOwner) { dataList ->
             adapter.submitList(dataList)
-        }
-
-        binding.buttonSend.setOnClickListener {
-//            val newTestData = TestData(
-//                dispositivo = "Poco X3",
-//                fecha = "2024-10-11T15:00:00Z",
-//                idVersionAndroid = 13,
-//                intensidadDeSenal = -65,
-//                jitter = 9,
-//                operadorDeRed = "TIGO",
-//                ping = 69,
-//                redScore = 6,
-//                servidor = "speedtest.tigo.com:8080/",
-//                tipoDeRed = "3.5G",
-//                ubicacion = "3.37673093,-76.55031147",
-//                userId = "test_Id",
-//                velocidadDeCarga = 20.66,
-//                velocidadDeDescarga = 10.22
-//            )
-//            individualTestViewModel.sendData(newTestData)
-        }
-
-        binding.buttonFetch.setOnClickListener {
-            lifecycleScope.launch {
-                individualTestViewModel.fetchData()
-            }
         }
 
         return root
