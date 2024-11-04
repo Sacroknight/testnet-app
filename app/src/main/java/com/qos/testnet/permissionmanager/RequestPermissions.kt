@@ -68,27 +68,31 @@ class RequestPermissions(private val context: Context) {
 
     fun requestWriteStoragePermissions() {
         ActivityCompat.requestPermissions(
-            (context as Activity),
+            context as Activity,
             arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-            REQUEST_LOCATION_PERMISSION
+            REQUEST_WRITE_STORAGE_PERMISSION
         )
     }
 
     fun requestReadStoragePermissions() {
         ActivityCompat.requestPermissions(
-            (context as Activity),
+            context as Activity,
             arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-            REQUEST_LOCATION_PERMISSION
+            REQUEST_READ_STORAGE_PERMISSION
         )
     }
 
     fun hasAllNecessaryPermissions(): Boolean {
-        return hasLocationPermissions() && hasReadPhonePermissions()
+        return hasLocationPermissions() &&
+                hasReadPhonePermissions() &&
+                hasReadStoragePermissions() &&
+                hasWriteStoragePermissions() &&
+                hasNetworkStatePermissions()
     }
 
     private fun requestLocationPermissions() {
         ActivityCompat.requestPermissions(
-            (context as Activity), arrayOf(
+            context as Activity, arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ), REQUEST_LOCATION_PERMISSION
@@ -96,27 +100,29 @@ class RequestPermissions(private val context: Context) {
     }
 
     fun requestReadPhonePermissions() {
-        ActivityCompat.requestPermissions(
-            context as Activity,
-            arrayOf(Manifest.permission.ACCESS_NETWORK_STATE),
-            REQUEST_ACCESS_NETWORK_STATE
-        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ActivityCompat.requestPermissions(
-                context, arrayOf(
+                context as Activity, arrayOf(
                     Manifest.permission.READ_PHONE_STATE,
                     Manifest.permission.READ_BASIC_PHONE_STATE
                 ), REQUEST_READ_PHONE_PERMISSION
             )
         } else {
             ActivityCompat.requestPermissions(
-                context,
-                arrayOf(Manifest.permission.READ_PHONE_STATE),
-                REQUEST_READ_PHONE_PERMISSION
+                context as Activity, arrayOf(
+                    Manifest.permission.READ_PHONE_STATE
+                ), REQUEST_READ_PHONE_PERMISSION
             )
         }
     }
 
+    fun requestAccessNetworkStatePermission(){
+        ActivityCompat.requestPermissions(
+            context as Activity,
+            arrayOf(Manifest.permission.ACCESS_NETWORK_STATE),
+            REQUEST_ACCESS_NETWORK_STATE
+        )
+    }
     fun requestLocationPermissionsDialog() {
         val dontAskAgain = booleanArrayOf(false)
 
@@ -151,6 +157,9 @@ class RequestPermissions(private val context: Context) {
             .setPositiveButton(context.getString(R.string.grant_Permission)) { _, _ ->
                 requestLocationPermissions()
                 requestReadPhonePermissions()
+                requestAccessNetworkStatePermission()
+                requestReadStoragePermissions()
+                requestWriteStoragePermissions()
             }
             .setNegativeButton(context.getString(R.string.continue_Without_Permission)) { dialog, _ ->
                 dialog.dismiss()
@@ -197,5 +206,7 @@ class RequestPermissions(private val context: Context) {
         const val REQUEST_LOCATION_PERMISSION: Int = 69
         const val REQUEST_READ_PHONE_PERMISSION: Int = 88
         const val REQUEST_ACCESS_NETWORK_STATE: Int = 89
+        const val REQUEST_WRITE_STORAGE_PERMISSION: Int = 90
+        const val REQUEST_READ_STORAGE_PERMISSION: Int = 91
     }
 }

@@ -24,9 +24,9 @@ import okhttp3.Response;
  * The type Http upload test.
  */
 public class UploadSpeedStats implements InternetTest, TestCallback {
-    private static final int BUFFER_SIZE = 1024 * 1024; // 1 MB
+    private static final int BUFFER_SIZE = 512 * 512; // 1 MB
     private static final int THREAD_COUNT = 4;
-    private static final int ITERATIONS = 25;
+    private static final int ITERATIONS = 50;
     /**
      * The Start time.
      */
@@ -248,4 +248,10 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
     public void OnTestBackground(String instantUploadRate, int instantUploadRateUi) {
         // TODO document why this method is empty
     }
+
+    @Override
+    public void OnTestFailed(String errorMessage) {
+        // TODO document why this method is empty
+    }
+
 }
