@@ -2,6 +2,7 @@ package com.qos.testnet.utils.network;
 
 
 import android.util.Log;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -146,10 +147,14 @@ public class GetBetterHost implements NetworkCallback {
                 double distance = vicentyDistance(selfLat, selfLon, serverLat, serverLon);
 
                 boolean isPreferredSponsor = serverSponsor.trim().equalsIgnoreCase(isp.trim());
-                if ((isPreferredSponsor && distance <= 1000) || distance < minDistance) {
+                if ((isPreferredSponsor && distance <= 10000) || distance < minDistance) {
                     minDistance = distance;
+                    if (isPreferredSponsor) {
+                        Log.d(this.getClass().getTypeName(), "Preferred sponsor found" + distance);
+                    }
+                    Log.d(this.getClass().getTypeName(), distance + " " + serverSponsor);
                     bestHostUrl = jsonObject.getString("url");
-                    if (isPreferredSponsor && minDistance <= 1000) {
+                    if (isPreferredSponsor && minDistance <= 10000) {
                         break; // Exit early if preferred sponsor is close enough
                     }
                 }
