@@ -21,5 +21,8 @@
     <string name="downloadspeedstats_class_name">Download Speed Stats</string>
     <string name="mega_bits_per_second" translatable="false">Mb/s</string>
     <string name="uploadspeedstats_class_name">Upload Speed Stats</string>
+    <string name="indiviual_score">Indiviual score:</string>
+    <string name="bonus_score">"Bonus factor: "</string>
+    <string name="signal_strength">Signal strength:</string>
 
 </resources>

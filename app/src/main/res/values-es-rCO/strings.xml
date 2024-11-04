@@ -18,4 +18,7 @@
     <string name="dont_Ask_Again">No preguntar de nuevo</string>
     <string name="downloadspeedstats_class_name">Estadísticas de velocidad de bajada</string>
     <string name="uploadspeedstats_class_name">Estadísticas de velocidad de subida</string>
+    <string name="indiviual_score">Puntuación:</string>
+    <string name="bonus_score">Factor de bonus:</string>
+    <string name="signal_strength">Intensidad del señal</string>
 </resources>

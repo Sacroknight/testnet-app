@@ -6,58 +6,299 @@
     android:layout_height="match_parent"
     tools:context="com.qos.testnet.ui.home.HomeFragment">
 
+    <LinearLayout
+        android:id="@+id/measurement_ping"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/activity_horizontal_margin"
+        android:background="@drawable/background_3d"
+        android:elevation="3dp"
+        android:orientation="vertical"
+        android:padding="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/frame_layout">
+
+        <!-- Línea 1 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Ping"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/normal_text" />
+
+        <!-- Línea 2: Mayor tamaño y en negrita -->
+        <TextView
+            android:id="@+id/ping_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="1.1"
+            android:text="0 ms"
+            android:textColor="@android:color/white"
+            android:textScaleX="1.1"
+            android:textSize="@dimen/normal_text"
+            android:textStyle="bold" />
+
+        <!-- Línea 3 (opcional) -->
+        <TextView
+            android:id="@+id/individual_ping_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="0.9"
+            android:text="@string/indiviual_score"
+            android:textColor="@android:color/white"
+            android:textScaleX="0.9"
+            android:textSize="@dimen/normal_text" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/measurement_jitter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/activity_horizontal_margin"
+        android:background="@drawable/background_3d"
+        android:elevation="3dp"
+        android:orientation="vertical"
+        android:padding="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintTop_toTopOf="@id/frame_layout">
+
+        <!-- Línea 1 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Jitter"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/normal_text" />
+
+        <!-- Línea 2: Mayor tamaño y en negrita -->
+        <TextView
+            android:id="@+id/jitter_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="1.1"
+            android:text="0 ms"
+            android:textAlignment="center"
+            android:textColor="@android:color/white"
+            android:textScaleX="1.1"
+            android:textSize="@dimen/normal_text"
+            android:textStyle="bold" />
+
+        <!-- Línea 3 (opcional) -->
+        <TextView
+            android:id="@+id/individual_jitter_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="0.9"
+            android:text="@string/indiviual_score"
+            android:textColor="@android:color/white"
+            android:textScaleX="0.9"
+            android:textSize="@dimen/normal_text" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/download_speed_measurement"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/activity_horizontal_margin"
+        android:background="@drawable/background_3d"
+        android:elevation="3dp"
+        android:orientation="vertical"
+        android:padding="16dp"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/frame_layout">
+
+        <!-- Línea 1 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="0.9"
+            android:text="Download Speed"
+            android:textColor="@android:color/white"
+            android:textScaleX="0.9"
+            android:textSize="@dimen/normal_text" />
+
+        <!-- Línea 2: Mayor tamaño y en negrita -->
+        <TextView
+            android:id="@+id/download_speed_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="1.1"
+            android:text="0 mb/s"
+            android:textAlignment="center"
+            android:textColor="@android:color/white"
+            android:textScaleX="1.1"
+            android:textSize="@dimen/normal_text"
+            android:textStyle="bold" />
+
+        <!-- Línea 3 (opcional) -->
+        <TextView
+            android:id="@+id/individual_download_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="0.9"
+            android:text="@string/indiviual_score"
+            android:textColor="@android:color/white"
+            android:textScaleX="0.9"
+            android:textSize="@dimen/normal_text" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/upload_speed_measurement"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/activity_horizontal_margin"
+        android:background="@drawable/background_3d"
+        android:elevation="3dp"
+        android:orientation="vertical"
+        android:padding="16dp"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0"
+        app:layout_constraintTop_toBottomOf="@id/frame_layout">
+
+        <!-- Línea 1 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Upload Speed"
+            android:textColor="@android:color/white"
+            android:textSize="@dimen/normal_text" />
+
+        <!-- Línea 2: Mayor tamaño y en negrita -->
+        <TextView
+            android:id="@+id/upload_speed_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="1.1"
+            android:text="0 mb/s"
+            android:textAlignment="center"
+            android:textColor="@android:color/white"
+            android:textScaleX="1.1"
+            android:textSize="@dimen/normal_text"
+            android:textStyle="bold" />
+
+        <!-- Línea 3 (opcional) -->
+        <TextView
+            android:id="@+id/individual_upload_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="0.9"
+            android:text="@string/indiviual_score"
+            android:textColor="@android:color/white"
+            android:textScaleX="0.9"
+            android:textSize="@dimen/normal_text"
+            android:visibility="visible" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/score"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/activity_vertical_margin"
+        android:background="@drawable/background_3d"
+        android:elevation="3dp"
+        android:orientation="vertical"
+        android:padding="16dp"
+
+        app:layout_constraintBottom_toTopOf="@id/upload_speed_measurement"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/measurement_ping">
+
+        <!-- Línea 1 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="1.2"
+            android:text="Tests Finalized"
+            android:textColor="@android:color/white"
+            android:textScaleX="1.2"
+            android:textSize="@dimen/normal_text"
+            android:textStyle="bold" />
+
+        <!-- Línea 2: Mayor tamaño y en negrita -->
+        <TextView
+            android:id="@+id/score_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:padding="2dp"
+            android:scaleY="1.4"
+            android:text="0/100"
+            android:textAlignment="center"
+            android:textColor="@android:color/white"
+            android:textScaleX="1.4"
+            android:textSize="@dimen/normal_text"
+            android:textStyle="bold" />
+
+        <!-- Línea 3 (opcional) -->
+        <TextView
+            android:id="@+id/signal_strength"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="0.9"
+            android:text="Signal strength:"
+            android:textColor="@android:color/white"
+            android:textScaleX="0.9"
+            android:textSize="@dimen/normal_text"
+            android:visibility="visible" />
+
+        <TextView
+            android:id="@+id/signal_strength_bonus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:scaleY="0.9"
+            android:text="Signal strength bonus:"
+            android:textColor="@android:color/white"
+            android:textScaleX="0.9"
+            android:textSize="@dimen/normal_text"
+            android:visibility="visible" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/instant_measurements"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
+        android:layout_margin="@dimen/activity_horizontal_margin"
         android:textAlignment="center"
-        android:textSize="20sp"
+        android:textSize="@dimen/normal_text"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
-    <TextView
-        android:id="@+id/download_Speed"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="@dimen/normal_text"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.35"
-        app:layout_constraintHorizontal_bias="0.5"
-        />
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.25">
-    <TextView
-        android:id="@+id/device_Information"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/activity_horizontal_margin"
-        android:textSize="@dimen/normal_text"
-        />
-</ScrollView>
-
 
     <FrameLayout
         android:id="@+id/frame_layout"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginVertical="8dp"
-        app:layout_constraintBottom_toBottomOf="@+id/instant_measurements"
+        android:layout_marginHorizontal="@dimen/progressbar_thick"
+        android:layout_marginVertical="@dimen/activity_horizontal_margin"
+        android:elevation="2dp"
+        app:layout_constraintBottom_toTopOf="@+id/instant_measurements"
         app:layout_constraintDimensionRatio="H,1:1"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.25">
@@ -66,31 +307,37 @@
             android:id="@+id/test_progress_indicator"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:indicatorSize="256sp"
-            app:trackThickness="32dp"
+            android:layout_gravity="center"
             android:max="100"
             android:min="0"
-            android:layout_gravity="center"
-            app:trackColor="#390091EA"
+            app:indicatorSize="192dp"
+            app:trackColor="@color/material_dynamic_primary80"
             app:trackCornerRadius="@dimen/activity_vertical_margin"
-            android:visibility="invisible"
-             />
+            app:trackThickness="@dimen/progressbar_thick" />
     </FrameLayout>
 
     <Button
         android:id="@+id/start_Button"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:maxWidth="320dp"
+        android:elegantTextHeight="true"
+        android:maxWidth="640dp"
+        android:maxHeight="328dp"
+        android:minWidth="320dp"
         android:padding="@dimen/activity_horizontal_margin"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginVertical="16dp"
         android:text="@string/title_start"
-        android:textColor="#263238"
+        android:textColor="@color/cardview_dark_background"
         android:textSize="@dimen/button_text"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/instant_measurements" />
+        app:layout_constraintTop_toBottomOf="@+id/upload_speed_measurement" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="20dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

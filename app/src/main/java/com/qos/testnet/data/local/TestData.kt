@@ -1,5 +1,6 @@
 package com.qos.testnet.data.local
 
+import java.io.Serializable
 import java.text.DecimalFormat
 
 data class TestData(
@@ -17,7 +18,7 @@ data class TestData(
     var userId: String = "",
     var velocidadDeCarga: Double = 0.0,
     var velocidadDeDescarga: Double = 0.0
-) {
+) : Serializable {
 
     // Funciones para obtener los valores formateados
     fun getFormattedRedScore(): String {
