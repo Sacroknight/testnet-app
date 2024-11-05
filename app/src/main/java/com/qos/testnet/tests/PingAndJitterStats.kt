@@ -1,308 +1,225 @@
-package com.qos.testnet.tests;
+package com.qos.testnet.tests
 
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import androidx.lifecycle.MutableLiveData
+import java.io.BufferedReader
+import java.io.IOException
+import java.io.InputStreamReader
+import java.util.Random
+import kotlin.math.pow
+import kotlin.math.sqrt
 
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
-
-import androidx.lifecycle.MutableLiveData;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.stream.Collectors;
-
-
-public class PingAndJitterStats implements InternetTest, TestCallback {
-    public static final int MAX_PING_TIMES = 40;
-    private static final int TIMEOUT_MS = 5000;
-    private static final int ERROR_MEASURING_PING = -1;
-    private int failedPings = 0;
-
-    private MutableLiveData<String> instantPing = new MutableLiveData<>();
-    private MutableLiveData<String> finalPing = new MutableLiveData<>();
-    private MutableLiveData<String> jitterLiveData = new MutableLiveData<>();
-    private MutableLiveData<Integer> progress = new MutableLiveData<>();
-    Map<String, Integer> host;
-    private int pingMeasure;
-    private int jitterMeasure;
-    private boolean finished;
-
-    /**
-     * Return if the ping and jitter test is finished.
-     *
-     * @return boolean finished
-     */
-    public boolean isFinished() {
-        return finished;
+class PingAndJitterStats : InternetTest, TestCallback {
+    companion object {
+        const val MAX_PING_TIMES = 40
+        const val TIMEOUT_MS = 5000 // Tiempo de espera en milisegundos
+        const val ERROR_MEASURING_PING = -1
     }
 
-    /**
-     * Set if the ping and jitter test is finished.
-     */
-    public void setFinished(boolean finished) {
-        this.finished = finished;
+    private var failedPings = 0
+    private val instantPing = MutableLiveData<String>()
+    private val finalPing = MutableLiveData<String>()
+    private val jitterLiveData = MutableLiveData<String>()
+    private val progress = MutableLiveData<Int>()
+    private val host: MutableMap<String, Int> = HashMap()
+    private var pingMeasure = 0
+    private var jitterMeasure = 0
+    private var finished = false
+
+    init {
+        getMostVisitedWebsites()
+        progress.value = 0
+        finished = false
     }
 
-    /**
-     * Return the ping measured.
-     *
-     * @return Measured ping
-     */
-    public int getPingMeasured() {
-        return pingMeasure;
+    fun isFinished(): Boolean = finished
+
+    fun setFinished(finished: Boolean) {
+        this.finished = finished
     }
 
-    /**
-     * Set the ping measured.
-     */
-    private void setFinalPing(int finalPing) {
-        this.pingMeasure = finalPing;
+    fun getPingMeasured(): Int = pingMeasure
+
+    private fun setFinalPing(finalPing: Int) {
+        pingMeasure = finalPing
     }
 
-    /**
-     * Return the jitter measured.
-     *
-     * @return jitter measured
-     */
-    public int getJitterMeasured() {
-        return jitterMeasure;
+    fun getJitterMeasured(): Int = jitterMeasure
+
+    private fun setJitterMeasure(jitterMeasure: Int) {
+        this.jitterMeasure = jitterMeasure
     }
 
-    /**
-     * Set the jitter measured.
-     */
-    private void setJitterMeasure(int jitterMeasure) {
-        this.jitterMeasure = jitterMeasure;
+    fun getJitterLivedata(): MutableLiveData<String> = jitterLiveData
+
+    fun setJitterLivedata(jitterMeasured: String) {
+        jitterLiveData.postValue(jitterMeasured)
     }
 
-    /**
-     * Return the jitter measured for the ui updates.
-     *
-     * @return jitter measured
-     */
-    public MutableLiveData<String> getJitterLivedata() {
-        return jitterLiveData;
+    private fun getMostVisitedWebsites() {
+        host["google.com"] = 1
+        host["youtube.com"] = 2
+        host["whatsapp.com"] = 3
+        host["facebook.com"] = 4
+        host["instagram.com"] = 5
+        host["live.com"] = 6
+        host["openai.com"] = 7
+        host["office.com"] = 8
+        host["wikipedia.org"] = 9
+        host["mercadolibre.com.co"] = 10
     }
 
-    /**
-     * Set the jitter measured for the ui updates.
-     */
-    public void setJitterLivedata(String jitterMeasured) {
-        jitterLiveData.postValue(jitterMeasured);
+    fun chooseHost(): String {
+        val hostList = host.keys.toList()
+        return hostList[Random().nextInt(hostList.size)]
     }
 
-    public PingAndJitterStats() {
-        getMostVisitedWebsites();
-        progress = new MutableLiveData<>();
-        instantPing = new MutableLiveData<>();
-        finalPing = new MutableLiveData<>();
-        jitterLiveData = new MutableLiveData<>();
-        finished = false;
-    }
+    fun measuringPingJitter(chosenHost: String, testCallback: TestCallback) {
+        Thread {
+            val pingList = mutableListOf<Int>()
+            var i = 0
+            while (i < MAX_PING_TIMES && pingList.size <= MAX_PING_TIMES / 2) {
+                var ping = measuringPing(chosenHost, testCallback)
 
-    private void getMostVisitedWebsites() {
-        host = new HashMap<>();
-        host.put("google.com", 1);
-        host.put("youtube.com", 2);
-        host.put("whatsapp.com", 3);
-        host.put("facebook.com", 4);
-        host.put("instagram.com", 5);
-        host.put("live.com", 6);
-        host.put("openai.com", 7);
-        host.put("office.com", 8);
-        host.put("microsoft.com", 9);
-        host.put("lan.leagueoflegends.com", 10);
-    }
-
-    public String chooseHost() {
-        List<String> hostList = new ArrayList<>(host.keySet());
-        Random random = new Random();
-        return hostList.get(random.nextInt(hostList.size()));
-    }
-
-    public void measuringPingJitter(final String chosenHost, final TestCallback testCallback) {
-        new Thread(() -> {
-            List<Integer> pingList = new ArrayList<>();
-            for (int i = 0; i < MAX_PING_TIMES || pingList.size() <= MAX_PING_TIMES/2; i++) {
-                int ping = measuringPing(chosenHost, testCallback);
-                // Reintentar si el ping falla
                 if (ping == ERROR_MEASURING_PING || ping > TIMEOUT_MS) {
-                    failedPings++;
-                    // Intentar nuevamente si el ping falla
-                    ping = measuringPing(chosenHost, testCallback);
+                    failedPings++
+                    ping = measuringPing(chosenHost, testCallback)
                 } else {
-                    pingList.add(ping);
+                    pingList.add(ping)
                 }
 
-                // Actualiza la interfaz de usuario en el hilo principal
-                int pingProgress = i * (100 / MAX_PING_TIMES);
-                String pingResult = ping + " ms";
-                runOnUiThread(() -> {
-                    setProgress(pingProgress);
-                    if (pingResult.contains("-1")) {
-                        if (!pingList.isEmpty()){
-                            testCallback.OnTestBackground(pingList.get(pingList.size() - 1) + " ms", pingProgress);
-                        }else{
-                            testCallback.OnTestBackground("", pingProgress);
-                        }
-                    } else {
-                        testCallback.OnTestBackground(pingResult, pingProgress);
-                    }
-                });
+                val pingProgress = i * (100 / MAX_PING_TIMES)
+                val pingResult = "$ping ms"
+                runOnUiThread {
+                    setProgress(pingProgress)
+                    testCallback.OnTestBackground(
+                        if (pingResult.contains("-1")) {
+                            if (pingList.isNotEmpty()) {
+                                "${pingList.last()} ms"
+                            } else {
+                                ""
+                            }
+                        } else {
+                            pingResult
+                        }, pingProgress
+                    )
+                }
 
-                // Introduce un pequeño retraso entre pings
+                // Espera un tiempo antes de enviar el siguiente ping
                 try {
-                    Thread.sleep(150); // 100 ms de espera
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    Log.e(this.getClass().getName(), "El hilo fue interrumpido", e);
-                    testCallback.OnTestFailed("El hilo fue interrumpido: " + e.getMessage());
-                    return;
+                    Thread.sleep(200) // 150 ms de espera entre pings
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    Log.e(this::class.java.name, "El hilo fue interrumpido", e)
+                    testCallback.OnTestFailed("El hilo fue interrumpido: ${e.message}")
+                    return@Thread
                 }
+
+                i++
             }
-            calculateAndSetStatistics(pingList, testCallback);
-            Log.d(this.getClass().getName(), "Finished measuring ping and jitter, the number of packets lost is: " + failedPings);
-        }).start();
+            calculateAndSetStatistics(pingList, testCallback)
+            Log.d(
+                this::class.java.name,
+                "Finished measuring ping and jitter, the number of packets lost is: $failedPings"
+            )
+        }.start()
     }
 
-    /**
-     * Método auxiliar para ejecutar acciones en el hilo principal
-     */
-    private void runOnUiThread(Runnable action) {
-        new Handler(Looper.getMainLooper()).post(action);
+    private fun runOnUiThread(action: () -> Unit) {
+        Handler(Looper.getMainLooper()).post(action)
     }
 
-
-    private void calculateAndSetStatistics(List<Integer> pingList, TestCallback testCallback) {
+    private fun calculateAndSetStatistics(pingList: List<Int>, testCallback: TestCallback) {
         try {
-            List<Integer> depuredPingList = pingList.stream().filter(ping -> ping != 0).collect(Collectors.toList());
-            double averagePing = depuredPingList.stream().mapToInt(Integer::intValue).average().orElse(0);
-            double variance = depuredPingList.stream().mapToDouble(ping -> Math.pow(ping - averagePing, 2)).average().orElse(0);
-            int jitter = (int) Math.sqrt(variance);
-            setFinalPing((int) averagePing);
-            setJitterMeasure(jitter);
-            setFinished(true);
+            val depuredPingList = pingList.filter { it > 0 }
+            val averagePing = depuredPingList.average()
+            val variance = depuredPingList.map { (it - averagePing).pow(2) }.average()
+            val jitter = sqrt(variance).toInt()
+            setFinalPing(averagePing.toInt())
+            setJitterMeasure(jitter)
+            setFinished(true)
         } finally {
-            setJitterLivedata(getJitterMeasured() + " ms");
-            setFinalMeasurement(getPingMeasured() + " ms");
-            testCallback.OnTestSuccess(getJitterMeasured() + " ms");
+            setJitterLivedata("${getJitterMeasured()} ms")
+            setFinalMeasurement("${getPingMeasured()} ms")
+            testCallback.OnTestSuccess("${getJitterMeasured()} ms")
         }
     }
 
-    private int measuringPing(String chosenHost, TestCallback testCallback) {
-        int ping = 0;
-        if (chosenHost == null || chosenHost.isEmpty()) {
-            OnTestFailed(chosenHost);
-            return ping;
+    private fun measuringPing(chosenHost: String, testCallback: TestCallback): Int {
+        var ping = 0
+        if (chosenHost.isEmpty()) {
+            OnTestFailed(chosenHost)
+            return ping
         }
 
-        Process process = null;
+        var process: Process? = null
         try {
-            process = new ProcessBuilder("ping", "-c", "1", "-W", String.valueOf(TIMEOUT_MS / 1000), chosenHost).start();
+            process =
+                ProcessBuilder("ping", "-c", "1", "-W", "${TIMEOUT_MS / 1000}", chosenHost).start()
 
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (line.contains("time=")) {
-                        int startIndex = line.indexOf("time=") + 5;
-                        int endIndex = line.indexOf(" ms", startIndex);
-                        ping = (int) Float.parseFloat(line.substring(startIndex, endIndex));
-                        break;
+            BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                var line: String?
+                Log.d(this::class.java.name, reader.readLine() )
+                while (reader.readLine().also { line = it } != null) {
+                    if (line!!.contains("time=")) {
+                        val startIndex = line!!.indexOf("time=") + 5
+                        val endIndex = line!!.indexOf(" ms", startIndex)
+                        ping = line!!.substring(startIndex, endIndex).toFloat().toInt()
+                        break
                     }
                 }
             }
 
             // Espera a que el proceso termine
-            int exitValue = process.waitFor();
-            if (exitValue != 0) {
-                ping = ERROR_MEASURING_PING;
+            if (process.waitFor() != 0) {
+                ping = ERROR_MEASURING_PING
             }
-        } catch (IOException e) {
-            Log.e(this.getClass().getName(), "Error al ejecutar el comando ping", e);
-            testCallback.OnTestFailed(e.getMessage());
-        } catch (InterruptedException e) {
-            // Volver a interrumpir el hilo actual
-            Thread.currentThread().interrupt();
-            Log.e(this.getClass().getName(), "El hilo fue interrumpido", e);
-            testCallback.OnTestFailed("El hilo fue interrumpido: " + e.getMessage());
-        } catch (RuntimeException e) {
-            // Captura cualquier otro error que pueda ocurrir
-            Log.e(this.getClass().getName(), "Error inesperado al ejecutar el comando ping", e);
-            testCallback.OnTestFailed("Error inesperado: " + e.getMessage());
+        } catch (e: IOException) {
+            Log.e(this::class.java.name, "Error al ejecutar el comando ping", e)
+            testCallback.OnTestFailed(e.message ?: "Error desconocido")
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Log.e(this::class.java.name, "El hilo fue interrumpido", e)
+            testCallback.OnTestFailed("El hilo fue interrumpido: ${e.message}")
+        } catch (e: RuntimeException) {
+            Log.e(this::class.java.name, "Error inesperado al ejecutar el comando ping", e)
+            testCallback.OnTestFailed("Error inesperado: ${e.message}")
         } finally {
-            if (process != null) {
-                process.destroy();
-            }
+            process?.destroy()
         }
 
-        return ping;
+        return ping
     }
 
-    /**
-     * Get the instant ping measured.
-     */
-    @Override
-    public MutableLiveData<String> getInstantMeasurement() {
-        return instantPing;
+    override fun getInstantMeasurement(): MutableLiveData<String> = instantPing
+
+    override fun setInstantMeasurement(instantMeasurement: String) {
+        instantPing.postValue(instantMeasurement)
     }
 
-    /**
-     * Set the instant ping measured for the ui updates.
-     */
-    @Override
-    public void setInstantMeasurement(String instantMeasurement) {
-        instantPing.postValue(instantMeasurement);
+    override fun getFinalMeasurement(): MutableLiveData<String> = finalPing
+
+    override fun setFinalMeasurement(finalMeasurement: String) {
+        finalPing.postValue(finalMeasurement)
     }
 
+    override fun getProgress(): MutableLiveData<Int> = progress
 
-    /**
-     * Return the ping measured in string for the ui updates.
-     *
-     * @return Measured ping in string
-     */
-    @Override
-    public MutableLiveData<String> getFinalMeasurement() {
-        return finalPing;
+    override fun setProgress(currentProgress: Int) {
+        progress.postValue(currentProgress)
     }
 
-    @Override
-    public void setFinalMeasurement(String finalMeasurement) {
-        finalPing.postValue(finalMeasurement);
+    override fun OnTestStart() {
+        // No implementado
     }
 
-    /**
-     * Return the progress of the ping and jitter test for the ui updates.
-     *
-     * @return Progress
-     */
-    @Override
-    public MutableLiveData<Integer> getProgress() {
-        return progress;
+    override fun OnTestSuccess(jitter: String) {
+        // No implementado
     }
 
-    @Override
-    public void setProgress(int currentProgress) {
-        progress.postValue(currentProgress);
-    }
-
-    @Override
-    public void OnTestStart() {
-        // TODO document why this method is empty
-    }
-
-    @Override
-    public void OnTestSuccess(String jitter) {
-        // TODO document why this method is empty
-    }
-
-    @Override
-    public void OnTestBackground(String currentPing, int currentProgress) {
-        // TODO document why this method is empty
+    override fun OnTestBackground(currentPing: String, currentProgress: Int) {
+        // No implementado
     }
 }
