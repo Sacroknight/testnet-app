@@ -42,7 +42,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Intensidad de Señal:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="@color/material_dynamic_primary50"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -50,7 +50,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Jitter:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -58,7 +58,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Operador de Red:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -66,7 +66,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Ping:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -74,7 +74,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Red Score:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="@color/material_dynamic_primary50"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -82,7 +82,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Servidor:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -90,7 +90,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Ping Host:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -98,7 +98,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Tipo de Red:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -106,7 +106,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Ubicación:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -114,7 +114,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="User ID:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -122,7 +122,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Velocidad de Carga:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/normal_text" />
 
         <TextView
@@ -130,7 +130,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Velocidad de Descarga:"
-            android:textColor="@color/material_dynamic_primary10"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="@dimen/normal_text" />
     </LinearLayout>
 </ScrollView>

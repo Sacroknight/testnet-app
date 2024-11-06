@@ -13,6 +13,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.qos.testnet.databinding.FragmentHomeBinding
+import com.qos.testnet.ui.home.HomeViewModel.Companion.cancelText
 import com.qos.testnet.ui.home.HomeViewModel.Companion.downloadMeasurement
 import com.qos.testnet.ui.home.HomeViewModel.Companion.downloadScore
 import com.qos.testnet.ui.home.HomeViewModel.Companion.instantMeasurements
@@ -65,6 +66,7 @@ class HomeFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        instantMeasurements.value = null
         _binding = null
     }
 
@@ -79,6 +81,7 @@ class HomeFragment : Fragment() {
         binding.signalStrength.visibility = View.GONE
         binding.signalStrengthBonus.visibility = View.GONE
         binding.score.visibility = View.GONE
+        binding.testInfo.visibility = View.GONE
     }
 
     private fun setupButtonListeners(homeViewModel: HomeViewModel) {
@@ -94,8 +97,16 @@ class HomeFragment : Fragment() {
     private fun observeViewModel() {
 
         // Observe the instant measurements and update the UI accordingly
-        instantMeasurements.observe(viewLifecycleOwner) { s: String? ->
-            binding.instantMeasurements.text = s
+        cancelText.observe(viewLifecycleOwner) { s: String? ->
+            if (!s.isNullOrEmpty()) { // Solo mostrar si hay un valor significativo
+                binding.testInfo.text = s
+                binding.testInfo.visibility = View.VISIBLE
+                binding.testInfo.postDelayed({
+                    binding.testInfo.visibility = View.GONE
+                }, 1000)
+            } else {
+                binding.testInfo.visibility = View.GONE // Asegúrate de ocultar si no hay valor
+            }
         }
 
         // Observe the changes on the button and update the UI accordingly

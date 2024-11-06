@@ -77,6 +77,7 @@ class PingAndJitterStats : InternetTest, TestCallback {
     }
 
     fun measuringPingJitter(chosenHost: String, testCallback: TestCallback) {
+        failedPings = 0
         Thread {
             val pingList = mutableListOf<Int>()
             var i = 0
@@ -95,6 +96,7 @@ class PingAndJitterStats : InternetTest, TestCallback {
                 }
                 if (failedPings >= MAX_PING_TIMES / 2) {
                     onTestFailure("Error al medir ping")
+                    calculateAndSetStatistics(pingList, testCallback)
                     break
                 }
 

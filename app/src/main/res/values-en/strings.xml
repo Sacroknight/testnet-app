@@ -21,4 +21,7 @@
     <string name="indiviual_score">Score:</string>
     <string name="bonus_score">"Bonus factor: "</string>
     <string name="signal_strength">Signal strength:</string>
+    <string name="download_speed">Download Speed</string>
+    <string name="upload_speed">Upload Speed</string>
+    <string name="tests_finalized">Tests Finalized</string>
 </resources>

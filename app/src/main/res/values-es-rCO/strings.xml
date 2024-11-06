@@ -19,6 +19,9 @@
     <string name="downloadspeedstats_class_name">Estadísticas de velocidad de bajada</string>
     <string name="uploadspeedstats_class_name">Estadísticas de velocidad de subida</string>
     <string name="indiviual_score">Puntuación:</string>
-    <string name="bonus_score">Factor de bonus:</string>
+    <string name="bonus_score">Bonus:</string>
     <string name="signal_strength">Intensidad del señal</string>
+    <string name="download_speed">V. de Descarga</string>
+    <string name="upload_speed">V. de Carga</string>
+    <string name="tests_finalized">Prueba Terminada</string>
 </resources>

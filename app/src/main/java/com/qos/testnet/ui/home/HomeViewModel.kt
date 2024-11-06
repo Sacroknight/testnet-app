@@ -451,11 +451,11 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                 visibilityOfJitter to View.VISIBLE,
                 visibilityOfDownload to View.VISIBLE,
                 visibilityOfUpload to View.VISIBLE,
-                visibilityOfScore to View.GONE
+                visibilityOfScore to View.GONE,
+                visibilityOfCancel to View.VISIBLE
             )
-
             // Mostrar mensaje de cancelación
-            instantMeasurements.postValue("Test Cancelado")
+            cancelText.postValue("Test Cancelado")
             isFinished.postValue(true)
             // Marcar la prueba como no en curso
             isTestRunning = false
@@ -587,6 +587,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         val visibilityOfUpload: MutableLiveData<Int> = MutableLiveData()
         val visibilityOfScore: MutableLiveData<Int> = MutableLiveData()
         val visibilityOfLocationProgress: MutableLiveData<Int> = MutableLiveData()
+        val visibilityOfCancel: MutableLiveData<Int> = MutableLiveData()
 
         val pingScore: MutableLiveData<String> = MutableLiveData()
         val jitterBonus: MutableLiveData<String> = MutableLiveData()
@@ -597,6 +598,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         @JvmField
         val isFinished: MutableLiveData<Boolean> = MutableLiveData()
         val locationProgress = MutableLiveData<Int>()
+        val cancelText = MutableLiveData<String>()
     }
 }
 

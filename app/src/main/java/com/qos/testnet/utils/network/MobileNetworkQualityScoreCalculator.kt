@@ -17,6 +17,7 @@ class MobileNetworkQualityScoreCalculator {
         Log.d("MobileNetworkQualityScoreCalculator", "Ping: $pingValue, Jitter: $jitterValue")
 
         pingScore = when {
+            pingValue <= 0 -> 0.0
             pingValue < PING_THRESHOLD_1 -> MAX_PING_SCORE
             pingValue <= PING_THRESHOLD_2 -> MAX_PING_SCORE * ((-0.875 / 910) * pingValue + 1.06159)
             pingValue <= PING_THRESHOLD_3 -> MAX_PING_SCORE * ((-0.1 / 2999) * pingValue + 0.13337)
@@ -24,6 +25,7 @@ class MobileNetworkQualityScoreCalculator {
         }
 
         jitterAdjustmentFactor = when {
+            jitterValue == 0 -> 1.0 // No jitter, no adjustment
             jitterValue <= JITTER_THRESHOLD_1 -> 1.0 // No adjustment
             jitterValue <= JITTER_THRESHOLD_2 -> 0.9 // Reduce score due to jitter
             jitterValue <= JITTER_THRESHOLD_3 -> (-1 / JITTER_THRESHOLD_3) * jitterValue + 1.0

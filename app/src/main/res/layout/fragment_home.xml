@@ -125,7 +125,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:scaleY="0.9"
-            android:text="Download Speed"
+            android:text="@string/download_speed"
             android:textColor="@android:color/white"
             android:textScaleX="0.9"
             android:textSize="@dimen/normal_text" />
@@ -176,7 +176,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="Upload Speed"
+            android:text="@string/upload_speed"
             android:textColor="@android:color/white"
             android:textSize="@dimen/normal_text" />
 
@@ -230,7 +230,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:scaleY="1.2"
-            android:text="Tests Finalized"
+            android:text="@string/tests_finalized"
             android:textColor="@android:color/white"
             android:textScaleX="1.2"
             android:textSize="@dimen/normal_text"
@@ -288,6 +288,28 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/test_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/activity_horizontal_margin"
+        android:background="@color/material_dynamic_primary80"
+        android:elegantTextHeight="true"
+        android:elevation="4dp"
+        android:shadowColor="#80000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="3"
+        android:textAlignment="center"
+        android:textColor="@color/cardview_light_background"
+        android:textSize="@dimen/normal_text"
+        android:textStyle="bold"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@id/cancel_button"
+        app:layout_constraintEnd_toEndOf="@+id/frame_layout"
+        app:layout_constraintStart_toStartOf="@+id/frame_layout"
+        app:layout_constraintTop_toTopOf="@+id/frame_layout" />
 
     <FrameLayout
         android:id="@+id/frame_layout"
@@ -361,13 +383,13 @@
 
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/location_progress_bar"
-        android:max="100"
         android:layout_width="0dp"
-        app:trackThickness="@dimen/progressbar_thick"
         android:layout_height="wrap_content"
-        app:trackCornerRadius="@dimen/activity_vertical_margin"
+        android:max="100"
         app:layout_constraintBottom_toTopOf="@id/cancel_button"
         app:layout_constraintEnd_toEndOf="@+id/frame_layout"
         app:layout_constraintStart_toStartOf="@+id/frame_layout"
-        app:layout_constraintTop_toTopOf="@+id/frame_layout" />
+        app:layout_constraintTop_toTopOf="@+id/frame_layout"
+        app:trackCornerRadius="@dimen/activity_vertical_margin"
+        app:trackThickness="@dimen/progressbar_thick" />
 </androidx.constraintlayout.widget.ConstraintLayout>
