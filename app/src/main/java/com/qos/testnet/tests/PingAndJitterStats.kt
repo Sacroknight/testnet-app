@@ -54,7 +54,7 @@ class PingAndJitterStats : InternetTest, TestCallback {
 
     fun getJitterLivedata(): MutableLiveData<String> = jitterLiveData
 
-    fun setJitterLivedata(jitterMeasured: String) {
+    private fun setJitterLivedata(jitterMeasured: String) {
         jitterLiveData.postValue(jitterMeasured)
     }
 
@@ -83,18 +83,26 @@ class PingAndJitterStats : InternetTest, TestCallback {
             while (i < MAX_PING_TIMES && pingList.size <= MAX_PING_TIMES / 2) {
                 var ping = measuringPing(chosenHost, testCallback)
 
-                if (ping == ERROR_MEASURING_PING || ping > TIMEOUT_MS) {
+                if (ping == ERROR_MEASURING_PING) {
                     failedPings++
                     ping = measuringPing(chosenHost, testCallback)
+                } else if (ping >= TIMEOUT_MS) {
+                    failedPings++
+                    ping = measuringPing(chosenHost, testCallback)
+                    pingList.add(ping)
                 } else {
                     pingList.add(ping)
+                }
+                if (failedPings >= MAX_PING_TIMES / 2) {
+                    onTestFailure("Error al medir ping")
+                    break
                 }
 
                 val pingProgress = i * (100 / MAX_PING_TIMES)
                 val pingResult = "$ping ms"
                 runOnUiThread {
                     setProgress(pingProgress)
-                    testCallback.OnTestBackground(
+                    testCallback.onTestBackground(
                         if (pingResult.contains("-1")) {
                             if (pingList.isNotEmpty()) {
                                 "${pingList.last()} ms"
@@ -109,11 +117,11 @@ class PingAndJitterStats : InternetTest, TestCallback {
 
                 // Espera un tiempo antes de enviar el siguiente ping
                 try {
-                    Thread.sleep(200) // 150 ms de espera entre pings
+                    Thread.sleep(200) // 200 ms de espera entre pings
                 } catch (e: InterruptedException) {
                     Thread.currentThread().interrupt()
                     Log.e(this::class.java.name, "El hilo fue interrumpido", e)
-                    testCallback.OnTestFailed("El hilo fue interrumpido: ${e.message}")
+                    testCallback.onTestFailed("El hilo fue interrumpido: ${e.message}")
                     return@Thread
                 }
 
@@ -143,14 +151,14 @@ class PingAndJitterStats : InternetTest, TestCallback {
         } finally {
             setJitterLivedata("${getJitterMeasured()} ms")
             setFinalMeasurement("${getPingMeasured()} ms")
-            testCallback.OnTestSuccess("${getJitterMeasured()} ms")
+            testCallback.onTestSuccess("${getJitterMeasured()} ms")
         }
     }
 
     private fun measuringPing(chosenHost: String, testCallback: TestCallback): Int {
         var ping = 0
         if (chosenHost.isEmpty()) {
-            OnTestFailed(chosenHost)
+            onTestFailed(chosenHost)
             return ping
         }
 
@@ -161,7 +169,7 @@ class PingAndJitterStats : InternetTest, TestCallback {
 
             BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
                 var line: String?
-                Log.d(this::class.java.name, reader.readLine() )
+                Log.d(this::class.java.name, reader.readLine())
                 while (reader.readLine().also { line = it } != null) {
                     if (line!!.contains("time=")) {
                         val startIndex = line!!.indexOf("time=") + 5
@@ -178,14 +186,14 @@ class PingAndJitterStats : InternetTest, TestCallback {
             }
         } catch (e: IOException) {
             Log.e(this::class.java.name, "Error al ejecutar el comando ping", e)
-            testCallback.OnTestFailed(e.message ?: "Error desconocido")
+            testCallback.onTestFailed(e.message ?: "Error desconocido")
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
             Log.e(this::class.java.name, "El hilo fue interrumpido", e)
-            testCallback.OnTestFailed("El hilo fue interrumpido: ${e.message}")
+            testCallback.onTestFailed("El hilo fue interrumpido: ${e.message}")
         } catch (e: RuntimeException) {
             Log.e(this::class.java.name, "Error inesperado al ejecutar el comando ping", e)
-            testCallback.OnTestFailed("Error inesperado: ${e.message}")
+            testCallback.onTestFailed("Error inesperado: ${e.message}")
         } finally {
             process?.destroy()
         }
@@ -211,15 +219,23 @@ class PingAndJitterStats : InternetTest, TestCallback {
         progress.postValue(currentProgress)
     }
 
-    override fun OnTestStart() {
+    override fun onTestStart() {
         // No implementado
     }
 
-    override fun OnTestSuccess(jitter: String) {
+    override fun onTestSuccess(jitter: String) {
         // No implementado
     }
 
-    override fun OnTestBackground(currentPing: String, currentProgress: Int) {
+    override fun onTestBackground(currentPing: String, currentProgress: Int) {
         // No implementado
+    }
+
+    override fun onTestFailed(error: String) {
+        // No implementado
+    }
+
+    override fun onTestFailure(error: String?) {
+        Log.e(this.javaClass.typeName, "Error: $error")
     }
 }

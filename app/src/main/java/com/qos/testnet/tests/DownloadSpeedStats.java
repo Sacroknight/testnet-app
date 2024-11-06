@@ -140,7 +140,7 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
 
     public void runDownloadSpeedTest(TestCallback testCallback, String url) {
         try {
-            OnTestStart();
+            onTestStart();
             downloadedBytes = 0;
             List<String> fileUrls = new ArrayList<>();
             fileUrls.add(url + "random2000x2000.jpg");
@@ -165,7 +165,7 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
                         endTime = System.currentTimeMillis();
                         downloadElapsedTime = (double) (endTime - startTime) / 1000;
                         setInstantDownloadRate(downloadedBytes, downloadElapsedTime);
-                        testCallback.OnTestBackground(String.format("%.2f" + context.getString(R.string.mega_bits_per_second), getInstantDownloadRate()), roundInt(getInstantDownloadRate()));
+                        testCallback.onTestBackground(String.format("%.2f" + context.getString(R.string.mega_bits_per_second), getInstantDownloadRate()), roundInt(getInstantDownloadRate()));
 
                         /*
                          * The Timeout.
@@ -178,7 +178,7 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
                 } catch (Exception ex) {
                     String errorMessage = "Error during download speed test: " + ex.getMessage();
                     Log.e(this.getClass().getTypeName(), errorMessage, ex);
-                    testCallback.OnTestFailed(errorMessage);
+                    testCallback.onTestFailed(errorMessage);
                 } finally {
                     if (inputStream != null) {
                         try {
@@ -199,7 +199,7 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
 
         } finally {
             finished = true;
-            testCallback.OnTestSuccess(getFinalDownloadRate() + " Mb/s");
+            testCallback.onTestSuccess(getFinalDownloadRate() + " Mb/s");
         }
     }
 
@@ -207,7 +207,7 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
         if (!response.isSuccessful()) {
             String errorMessage = "Unexpected code " + response + ": " + response.message();
             Log.e(this.getClass().getTypeName(), errorMessage);
-            testCallback.OnTestFailed(errorMessage);
+            testCallback.onTestFailed(errorMessage);
         }
     }
 
@@ -242,16 +242,21 @@ public class DownloadSpeedStats implements InternetTest, TestCallback {
     }
 
     @Override
-    public void OnTestStart() {
+    public void onTestStart() {
         finished = false;
     }
 
     @Override
-    public void OnTestSuccess(String finalDownloadRate) {
+    public void onTestSuccess(String finalDownloadRate) {
         // TODO document why this method is empty
     }
 
-    public void OnTestBackground(String instantDownloadRate, int instantDownloadRateUi) {
+    public void onTestBackground(String instantDownloadRate, int instantDownloadRateUi) {
+        // TODO document why this method is empty
+    }
+
+    @Override
+    public void onTestFailure(String error) {
         // TODO document why this method is empty
     }
 

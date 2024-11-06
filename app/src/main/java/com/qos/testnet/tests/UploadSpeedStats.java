@@ -152,7 +152,7 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
     public void runUploadSpeedTest(TestCallback testCallback, String url) {
         try {
             uploadedBytes = 0;
-            OnTestStart();
+            onTestStart();
             byte[] buffer = new byte[BUFFER_SIZE];
             ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
             startTime = System.currentTimeMillis();
@@ -167,7 +167,7 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
                             endTime = System.currentTimeMillis();
                             uploadElapsedTime = (double) (endTime - startTime) / 1000;
                             setInstantUploadRate(uploadedBytes, uploadElapsedTime);
-                            testCallback.OnTestBackground(String.format("%.2f Mb/s", getInstantUploadRate()), roundInt(getInstantUploadRate()));
+                            testCallback.onTestBackground(String.format("%.2f Mb/s", getInstantUploadRate()), roundInt(getInstantUploadRate()));
                         }
                     } catch (IOException ex) {
                         String errorMessage = "Error during upload speed test: " + ex.getMessage();
@@ -192,7 +192,7 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
             Thread.currentThread().interrupt();
         } finally {
             finished = true;
-            testCallback.OnTestSuccess(getFinalUploadRate() + " Mb/s");
+            testCallback.onTestSuccess(getFinalUploadRate() + " Mb/s");
         }
     }
 
@@ -200,7 +200,7 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
         if (!response.isSuccessful()) {
             String errorMessage = "Unexpected code " + response + ": " + response.message();
             Log.e(this.getClass().getTypeName(), errorMessage);
-            testCallback.OnTestFailed(errorMessage);
+            testCallback.onTestFailed(errorMessage);
         }
     }
 
@@ -235,22 +235,27 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
     }
 
     @Override
-    public void OnTestStart() {
+    public void onTestStart() {
         finished = false;
     }
 
     @Override
-    public void OnTestSuccess(String finalUploadRate) {
+    public void onTestSuccess(String finalUploadRate) {
         // TODO document why this method is empty
     }
 
     @Override
-    public void OnTestBackground(String instantUploadRate, int instantUploadRateUi) {
+    public void onTestBackground(String instantUploadRate, int instantUploadRateUi) {
         // TODO document why this method is empty
     }
 
     @Override
-    public void OnTestFailed(String errorMessage) {
+    public void onTestFailure(String error) {
+        Log.e(this.getClass().getTypeName(),"Error: " + error);
+    }
+
+    @Override
+    public void onTestFailed(String error) {
         // TODO document why this method is empty
     }
 

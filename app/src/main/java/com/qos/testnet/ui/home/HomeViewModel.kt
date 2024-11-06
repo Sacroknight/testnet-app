@@ -2,6 +2,7 @@ package com.qos.testnet.ui.home
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.location.Location
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
@@ -73,8 +74,15 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
             visibilityOfUpload to View.GONE
         )
 
-        val totalTime = 10000L // 10 seconds
-        val interval = 100L // 100 ms
+        startLocationProgressTimer(10000L, 100L)
+
+        viewModelScope.launch {
+            val locationResult = retrieveLocationWithTimeout(10000L)
+            handleLocationResult(locationResult)
+        }
+    }
+
+    private fun startLocationProgressTimer(totalTime: Long, interval: Long) {
         val progressIncrement = 100 / (totalTime / interval).toInt()
 
         val timer = object : CountDownTimer(totalTime, interval) {
@@ -92,213 +100,262 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         }
 
         timer.start()
+    }
 
-        viewModelScope.launch {
-            val locationResult =
-                locationInfo.locationFlow(timeout = totalTime)
-                    .catch { exception ->
-                        Log.e("LocationFlow", "Error occurred: ${exception.message}")
-                    }
-                    .firstOrNull()
-
-            timer.cancel() // Cancel the timer once we have a result
-
-            if (locationResult != null) {
-                currentLocation = "${locationResult.latitude}, ${locationResult.longitude}"
-                getBestHostAndStartTasks()
-                updateVisibility(visibilityOfLocationProgress to View.GONE)
-            } else {
-                try {
-                    val (latitude, longitude) = withContext(ioDispatcher) {
-                        locationInfo.fetchLocationFromApi(LocationInfo.API_URL)
-                    }
-                    currentLocation = "$latitude, $longitude"
-                    updateVisibility(visibilityOfLocationProgress to View.GONE)
-                    getBestHostAndStartTasks()
-                } catch (e: Exception) {
-                    Log.e("LocationFlow", "Error fetching location from API: ${e.message}")
-                }
+    private suspend fun retrieveLocationWithTimeout(timeout: Long): Location? {
+        return locationInfo.locationFlow(timeout = timeout)
+            .catch { exception ->
+                Log.e("LocationFlow", "Error occurred: ${exception.message}")
             }
+            .firstOrNull()
+    }
+
+    private suspend fun handleLocationResult(locationResult: Location?) {
+        if (locationResult != null) {
+            currentLocation = "${locationResult.latitude}, ${locationResult.longitude}"
+            getBestHostAndStartTasks()
+            updateVisibility(visibilityOfLocationProgress to View.GONE)
+        } else {
+            fetchLocationFromApi(ioDispatcher)
+        }
+    }
+
+    private suspend fun fetchLocationFromApi(dispatcher: CoroutineDispatcher) {
+        try {
+            val (latitude, longitude) = withContext(dispatcher) {
+                locationInfo.fetchLocationFromApi(LocationInfo.API_URL)
+            }
+            currentLocation = "$latitude, $longitude"
+            updateVisibility(visibilityOfLocationProgress to View.GONE)
+            getBestHostAndStartTasks()
+        } catch (e: Exception) {
+            Log.e("LocationFlow", "Error fetching location from API: ${e.message}")
+        } finally {
+            updateVisibility(visibilityOfLocationProgress to View.GONE)
         }
     }
     /**
      * Start ping and jitter test
      */
-
-    /**
-     * Iniciar la prueba de ping y jitter
-     */
     private fun startPingAndJitterTest() {
         updateVisibility(
             visibilityOfProgress to View.VISIBLE,
-            visibilityOfPing to View.VISIBLE,
+            visibilityOfPing to View.VISIBLE
         )
-        Thread {
-            if (!isTestRunning) return@Thread
-            pingAndJitterTest.startPingAndJitterTest(object : TestCallback {
-                override fun OnTestStart() {
-                    if (!isTestRunning) return
-                    pingMeasurement.postValue("")
-                }
 
-                override fun OnTestSuccess(jitter: String) {
-                    if (!isTestRunning) return
-                    updateVisibility(
-                        visibilityOfJitter to View.VISIBLE
-                    )
-                    pingMeasurement.postValue("${pingAndJitterTest.pingMeasured} ms")
-                    jitterMeasurement.postValue("${pingAndJitterTest.jitterMeasured} ms")
-                    progress.postValue(0)
-                    viewModelScope.launch {
-                        userId = userRepository.getUserId()
-                    }
-                    Handler(Looper.getMainLooper()).postDelayed(
-                        { if (isTestRunning) this@HomeViewModel.startDownloadSpeedTest() }, 500
-                    )
-                }
-
-                override fun OnTestBackground(
-                    currentBackgroundMeasurement: String,
-                    currentBackgroundProgress: Int
-                ) {
-                    if (!isTestRunning) return
-                    pingMeasurement.postValue(currentBackgroundMeasurement)
-                    progress.postValue(currentBackgroundProgress)
-                }
-
-                override fun OnTestFailed(errorMessage: String) {
-                    if (!isTestRunning) return
-                    updateVisibility(
-                        visibilityOfProgress to View.GONE,
-                        visibilityOfJitter to View.GONE
-                    )
-                    pingMeasurement.postValue(errorMessage)
-                    Log.e("PingAndJitterTest", "Test failed: $errorMessage")
-                }
-            })
-        }.start()
-    }
-
-    /**
-     * Iniciar la prueba de velocidad de descarga
-     */
-    fun startDownloadSpeedTest() {
-        updateVisibility(
-            visibilityOfDownload to View.VISIBLE
-        )
         Thread {
             if (!isTestRunning) return@Thread
             try {
-                downloadSpeedTest.startSpeedTest(
-                    getBetterHost.urlAddress,
-                    object : TestCallback {
-                        override fun OnTestStart() {
-                            if (!isTestRunning) return
-                            downloadMeasurement.postValue("")
-                            updateVisibility(
-                                visibilityOfDownload to View.VISIBLE
-                            )
-                        }
+                pingAndJitterTest.startPingAndJitterTest(createPingAndJitterTestCallback())
+            } finally {
+                Log.d("PingAndJitterTest", "Test finished")
+            }
+        }.start()
+    }
 
-                        override fun OnTestSuccess(downloadSpeed: String) {
-                            if (!isTestRunning) return
-                            downloadMeasurement.postValue("${downloadSpeedTest.finalDownloadSpeed} Mb/s")
-                            Handler(Looper.getMainLooper()).postDelayed(
-                                { if (isTestRunning) this@HomeViewModel.startUploadSpeedTest() },
-                                500
-                            )
-                        }
+    private fun createPingAndJitterTestCallback(): TestCallback {
+        return object : TestCallback {
+            override fun onTestStart() {
+                if (!isTestRunning) return
+                pingMeasurement.postValue("")
+            }
 
-                        override fun OnTestBackground(
-                            currentBackgroundMeasurement: String,
-                            currentBackgroundProgress: Int
-                        ) {
-                            if (!isTestRunning) return
-                            progress.postValue(currentBackgroundProgress)
-                            downloadMeasurement.postValue(currentBackgroundMeasurement)
-                        }
+            override fun onTestSuccess(jitter: String) {
+                if (!isTestRunning) return
+                handleTestSuccess()
+            }
 
-                        override fun OnTestFailed(errorMessage: String) {
-                            if (!isTestRunning) return
-                            Log.e("DownloadSpeedTest", "Test failed: $errorMessage")
-                            visibilityOfProgress.postValue(View.GONE)
-                            downloadMeasurement.postValue("Download failed")
-                        }
-                    })
+            override fun onTestBackground(
+                currentBackgroundMeasurement: String,
+                currentBackgroundProgress: Int
+            ) {
+                if (!isTestRunning) return
+                pingMeasurement.postValue(currentBackgroundMeasurement)
+                progress.postValue(currentBackgroundProgress)
+            }
+
+            override fun onTestFailed(errorMessage: String) {
+                if (!isTestRunning) return
+                handleTestFailure(errorMessage)
+            }
+
+            override fun onTestFailure(error: String?) {
+                Log.e("PingAndJitterTest", "Test failed: $error")
+                handleTestSuccess()
+            }
+        }
+    }
+
+    private fun handleTestSuccess() {
+        updateVisibility(visibilityOfJitter to View.VISIBLE)
+        pingMeasurement.postValue("${pingAndJitterTest.pingMeasured} ms")
+        jitterMeasurement.postValue("${pingAndJitterTest.jitterMeasured} ms")
+        progress.postValue(0)
+
+        viewModelScope.launch {
+            userId = userRepository.getUserId()
+        }
+
+        Handler(Looper.getMainLooper()).postDelayed(
+            { if (isTestRunning) startDownloadSpeedTest() },
+            500
+        )
+    }
+
+    private fun handleTestFailure(errorMessage: String) {
+        updateVisibility(
+            visibilityOfProgress to View.GONE,
+            visibilityOfJitter to View.GONE
+        )
+        pingMeasurement.postValue(errorMessage)
+        Log.e("PingAndJitterTest", "Test failed: $errorMessage")
+    }
+
+    /**
+     * Starts the download speed test
+     */
+    private fun startDownloadSpeedTest() {
+        updateVisibility(visibilityOfDownload to View.VISIBLE)
+
+        Thread {
+            if (!isTestRunning) return@Thread
+
+            try {
+                downloadSpeedTest.startSpeedTest(getBetterHost.urlAddress, downloadSpeedCallback())
             } finally {
                 progress.postValue(0)
             }
         }.start()
     }
 
+    private fun downloadSpeedCallback(): TestCallback {
+        return object : TestCallback {
+            override fun onTestStart() {
+                if (!isTestRunning) return
+                downloadMeasurement.postValue("")
+                updateVisibility(visibilityOfDownload to View.VISIBLE)
+            }
+
+            override fun onTestSuccess(downloadSpeed: String) {
+                if (!isTestRunning) return
+                downloadMeasurement.postValue("${downloadSpeedTest.finalDownloadSpeed} Mb/s")
+                Handler(Looper.getMainLooper()).postDelayed(
+                    { if (isTestRunning) startUploadSpeedTest() },
+                    500
+                )
+            }
+
+            override fun onTestBackground(
+                currentBackgroundMeasurement: String,
+                currentBackgroundProgress: Int
+            ) {
+                if (!isTestRunning) return
+                progress.postValue(currentBackgroundProgress)
+                downloadMeasurement.postValue(currentBackgroundMeasurement)
+            }
+
+            override fun onTestFailed(errorMessage: String) {
+                if (!isTestRunning) return
+                Log.e("DownloadSpeedTest", "Test failed: $errorMessage")
+                visibilityOfProgress.postValue(View.GONE)
+                downloadMeasurement.postValue("Download failed")
+            }
+
+            override fun onTestFailure(error: String?) {
+                if (!isTestRunning) return
+                Log.e("DownloadSpeedTest", "Test failed: $error")
+            }
+        }
+    }
+
     /**
-     * Iniciar la prueba de velocidad de carga
+     * Starts the upload speed test
      */
     fun startUploadSpeedTest() {
         updateVisibility(visibilityOfUpload to View.VISIBLE)
+
         Thread {
             if (!isTestRunning) return@Thread
             try {
-                uploadSpeedStats.runUploadSpeedTest(object : TestCallback {
-                    override fun OnTestStart() {
-                        if (!isTestRunning) return
-                        uploadMeasurement.postValue("")
-                    }
-
-                    override fun OnTestSuccess(uploadSpeed: String) {
-                        if (!isTestRunning) return
-                        uploadMeasurement.postValue("${uploadSpeedStats.finalUploadRate} Mb/s")
-                    }
-
-                    override fun OnTestBackground(
-                        currentBackgroundMeasurement: String,
-                        currentBackgroundProgress: Int
-                    ) {
-                        if (!isTestRunning) return
-                        progress.postValue(currentBackgroundProgress)
-                        uploadMeasurement.postValue(currentBackgroundMeasurement)
-                    }
-
-                    override fun OnTestFailed(errorMessage: String) {
-                        if (!isTestRunning) return
-                        Log.e("UploadSpeedTest", "Test failed: $errorMessage")
-                        visibilityOfProgress.postValue(View.GONE)
-                        visibilityOfUpload.postValue(View.GONE)
-                        uploadMeasurement.postValue("Upload failed")
-                    }
-                }, getBetterHost.urlUploadAddress)
+                uploadSpeedStats.runUploadSpeedTest(
+                    uploadTestCallback(),
+                    getBetterHost.urlUploadAddress
+                )
             } finally {
-                if (isTestRunning) {
-                    calculateOverallRating()
-                    progress.postValue(0)
-                    instantMeasurements.postValue("")
-                    isFinished.postValue(true)
-                    updateVisibility(
-                        visibilityOfScore to View.VISIBLE,
-                        visibilityOfProgress to View.GONE
-                    )
-                    scoreVisualizer()
-                    val newTestData = TestData(
-                        dispositivo = deviceInformation.model,
-                        fecha = deviceInformation.getCurrentDateTime(),
-                        idVersionAndroid = deviceInformation.androidVersion.toInt(),
-                        intensidadDeSenal = deviceInformation.signalStrength,
-                        jitter = pingAndJitterTest.jitterMeasured,
-                        operadorDeRed = deviceInformation.carrier ?: "-1",
-                        ping = pingAndJitterTest.pingMeasured,
-                        pingHost = pingAndJitterTest.currentHost,
-                        redScore = score,
-                        servidor = getBetterHost.urlAddress,
-                        tipoDeRed = deviceInformation.getActiveNetworkType(context) ?: "-1",
-                        ubicacion = currentLocation ?: "-1, -1",
-                        userId = userId,
-                        velocidadDeCarga = downloadSpeedTest.finalDownloadSpeed,
-                        velocidadDeDescarga = uploadSpeedStats.finalUploadRate
-                    )
-                    userRepository.sendData(newTestData)
-                }
+                if (isTestRunning) finalizeUploadTest()
             }
         }.start()
+    }
+
+    private fun uploadTestCallback(): TestCallback {
+        return object : TestCallback {
+            override fun onTestStart() {
+                if (!isTestRunning) return
+                uploadMeasurement.postValue("")
+            }
+
+            override fun onTestSuccess(uploadSpeed: String) {
+                if (!isTestRunning) return
+                uploadMeasurement.postValue("${uploadSpeedStats.finalUploadRate} Mb/s")
+            }
+
+            override fun onTestBackground(
+                currentBackgroundMeasurement: String,
+                currentBackgroundProgress: Int
+            ) {
+                if (!isTestRunning) return
+                progress.postValue(currentBackgroundProgress)
+                uploadMeasurement.postValue(currentBackgroundMeasurement)
+            }
+
+            override fun onTestFailed(errorMessage: String) {
+                if (!isTestRunning) return
+                Log.e("UploadSpeedTest", "Test failed: $errorMessage")
+                visibilityOfProgress.postValue(View.GONE)
+                visibilityOfUpload.postValue(View.GONE)
+                uploadMeasurement.postValue("Upload failed")
+            }
+
+            override fun onTestFailure(error: String?) {
+                if (!isTestRunning) return
+                Log.e("UploadSpeedTest", "Test failed: $error")
+            }
+        }
+    }
+
+    private fun finalizeUploadTest() {
+        calculateOverallRating()
+        progress.postValue(0)
+        instantMeasurements.postValue("")
+        isFinished.postValue(true)
+        updateVisibility(
+            visibilityOfScore to View.VISIBLE,
+            visibilityOfProgress to View.GONE
+        )
+        scoreVisualizer()
+
+        val newTestData = createTestData()
+        userRepository.sendData(newTestData)
+    }
+
+    private fun createTestData(): TestData {
+        return TestData(
+            dispositivo = deviceInformation.model,
+            fecha = deviceInformation.getCurrentDateTime(),
+            idVersionAndroid = deviceInformation.androidVersion.toInt(),
+            intensidadDeSenal = deviceInformation.signalStrength,
+            jitter = pingAndJitterTest.jitterMeasured,
+            operadorDeRed = deviceInformation.carrier ?: "-1",
+            ping = pingAndJitterTest.pingMeasured,
+            pingHost = pingAndJitterTest.currentHost,
+            redScore = score,
+            servidor = getBetterHost.urlAddress,
+            tipoDeRed = deviceInformation.getActiveNetworkType(context) ?: "-1",
+            ubicacion = currentLocation ?: "-1, -1",
+            userId = userId,
+            velocidadDeCarga = downloadSpeedTest.finalDownloadSpeed,
+            velocidadDeDescarga = uploadSpeedStats.finalUploadRate
+        )
     }
 
     /**
