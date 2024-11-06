@@ -8,6 +8,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.Navigation
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.NavigationUI
+import androidx.navigation.ui.setupActionBarWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -46,18 +47,30 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if(!requestPermissions?.hasWriteStoragePermissions()!! || !requestPermissions?.hasReadStoragePermissions()!!) {
-            requestPermissions!!.requestWriteStoragePermissions()
-            requestPermissions!!.requestReadStoragePermissions()
-        }
-        if(!requestPermissions?.hasReadPhonePermissions()!! || !requestPermissions?.hasNetworkStatePermissions()!!) {
-            requestPermissions!!.requestReadPhonePermissions()
+        when {
+            !requestPermissions?.hasWriteStoragePermissions()!! || !requestPermissions?.hasReadStoragePermissions()!! -> {
+                requestPermissions!!.requestWriteStoragePermissions()
+                requestPermissions!!.requestReadStoragePermissions()
+            }
+            !requestPermissions?.hasReadPhonePermissions()!! || !requestPermissions?.hasNetworkStatePermissions()!! -> {
+                requestPermissions!!.requestReadPhonePermissions()
+            }
+            requestPermissions!!.hasNetworkStatePermissions() -> {
+                requestPermissions!!.requestAccessNetworkStatePermission()
+            }
         }
 
         if (mAuth.currentUser == null) {
             singInAnonymously()
         } else {
             val user: FirebaseUser? = mAuth.currentUser
+            lifecycleScope.launch {
+                permissionPreferences.saveUserId(
+                    this@MainActivity,
+                    PermissionPreferences.PermissionPreferencesKeys.USER_ID, user.toString()
+                )
+                Log.d("MainActivity", "SingInAnonymously:success, user ID:  ${user.toString()}")
+            }
             user?.let {
                 Log.d("MainActivity", "User already signed in, userId: ${it.uid}")
             }
@@ -73,18 +86,21 @@ class MainActivity : AppCompatActivity() {
 
         val navView = findViewById<BottomNavigationView>(R.id.nav_view)
         val navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_main)
+        setupActionBarWithNavController(navController)
 
         val appBarConfiguration = AppBarConfiguration(
             setOf(
                 R.id.navigation_home,
                 R.id.navigation_dashboard,
-                R.id.navigation_notifications
+                R.id.navigation_notifications,
+                R.id.testDetailsFragment
             )
         )
 
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration)
         NavigationUI.setupWithNavController(navView, navController)
     }
+
 
     private fun singInAnonymously() {
         mAuth.signInAnonymously()

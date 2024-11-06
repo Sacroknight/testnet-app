@@ -1,5 +1,6 @@
 package com.qos.testnet.utils
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -34,6 +35,7 @@ class AdapterHistory(private val onItemClick: (TestData) -> Unit) :
         private val textViewScore: TextView = itemView.findViewById(R.id.textViewScore)
         private val textViewRed: TextView = itemView.findViewById(R.id.textViewRed)
 
+        @SuppressLint("SetTextI18n", "DefaultLocale")
         fun bind(testData: TestData, onItemClick: (TestData) -> Unit) {
             // Formato de la fecha en origen siguiendo el guardado (ej: Bogotá)
             val originalFormat = SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss.SSSXXX", Locale("es", "CO"))
@@ -52,8 +54,9 @@ class AdapterHistory(private val onItemClick: (TestData) -> Unit) :
                 e.printStackTrace()
                 textViewFecha.text = "Fecha: Desconocida"
             }
-
-            textViewScore.text = "Score: ${testData.redScore}"
+            val scoreAux = testData.redScore
+            val formatedScore = String.format("%.2f", scoreAux)
+            textViewScore.text = "Score: ${formatedScore}/100"
             textViewRed.text = "Tipo de Red: ${testData.tipoDeRed}"
 
             itemView.setOnClickListener {

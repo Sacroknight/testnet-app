@@ -120,14 +120,14 @@ class MobileNetworkQualityScoreCalculator {
     companion object {
         private const val MAX_PING_SCORE = 40.0
         private const val MAX_DOWNLOAD_SCORE = 35.0
-        private const val PING_THRESHOLD_1 = 90.0
         private const val MAX_UPLOAD_SCORE = 25.0
+        private const val PING_THRESHOLD_1 = 90.0
         private const val PING_THRESHOLD_2 = 1000.0
-        private const val JITTER_THRESHOLD_1 = 30.0
         private const val PING_THRESHOLD_3 = 4000.0
+        private const val JITTER_THRESHOLD_1 = 30.0
         private const val JITTER_THRESHOLD_2 = 50.0
-        private const val SIGNAL_STRENGTH_MIN = -112.0
         private const val JITTER_THRESHOLD_3 = 500.0
+        private const val SIGNAL_STRENGTH_MIN = -112.0
         private const val SIGNAL_STRENGTH_MAX = -51.0
     }
 }

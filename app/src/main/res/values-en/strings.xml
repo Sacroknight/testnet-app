@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="title_home">Home</string>
-    <string name="title_dashboard">Individual Tests</string>
+    <string name="title_dashboard">Tests Results List</string>
     <string name="title_notifications">Test Historial</string>
     <string name="title_start">Start</string>
     <string name="not_deviceInfo">Couldn\'t get device information.</string>

@@ -49,6 +49,7 @@ class TestDetailsFragment : Fragment() {
                 binding.textViewJitter.text = "Jitter: ${it.jitter}"
                 binding.textViewOperadorDeRed.text = "Operador de Red: ${it.operadorDeRed}"
                 binding.textViewPing.text = "Ping: ${it.ping}"
+                binding.textViewPingHost.text = "Ping Host: ${it.pingHost}"
                 binding.textViewRedScore.text = "Red Score: ${it.redScore}"
                 binding.textViewServidor.text = "Servidor: ${it.servidor}"
                 binding.textViewTipoDeRed.text = "Tipo de Red: ${it.tipoDeRed}"

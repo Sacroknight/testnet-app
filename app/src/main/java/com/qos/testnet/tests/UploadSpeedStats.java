@@ -26,7 +26,7 @@ import okhttp3.Response;
 public class UploadSpeedStats implements InternetTest, TestCallback {
     private static final int BUFFER_SIZE = 512 * 512; // 1 MB
     private static final int THREAD_COUNT = 4;
-    private static final int ITERATIONS = 50;
+    private static final int ITERATIONS = 100;
     /**
      * The Start time.
      */
@@ -176,8 +176,8 @@ public class UploadSpeedStats implements InternetTest, TestCallback {
                 });
             }
             executor.shutdown();
-            if (!executor.awaitTermination(45, TimeUnit.SECONDS)) {
-                String timeoutMessage = "Test exceeded the maximum duration of 45 seconds.";
+            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                String timeoutMessage = "Test exceeded the maximum duration of 30 seconds.";
                 Log.e(this.getClass().getTypeName(), timeoutMessage);
                 executor.shutdownNow(); // Attempt to stop all actively executing tasks
             }

@@ -11,6 +11,7 @@ data class TestData(
     var jitter: Int = 0,
     var operadorDeRed: String = "",
     var ping: Int = 0,
+    var pingHost: String = "",
     var redScore: Double = 0.0,
     var servidor: String = "",
     var tipoDeRed: String = "",

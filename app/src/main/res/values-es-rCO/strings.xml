@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="title_home">Inicio</string>
-    <string name="title_dashboard">Pruebas Individuales</string>
+    <string name="title_dashboard">Lista de resultados</string>
     <string name="title_notifications">Historial</string>
     <string name="title_start">Iniciar</string>
     <string name="not_deviceInfo">No se pudo encontrar información del dispositivo</string>

@@ -30,6 +30,7 @@ class AdapterResults : ListAdapter<TestData, AdapterResults.TestDataViewHolder>(
         private val textViewJitter: TextView = itemView.findViewById(R.id.textViewJitter)
         private val textViewOperadorDeRed: TextView = itemView.findViewById(R.id.textViewOperadorDeRed)
         private val textViewPing: TextView = itemView.findViewById(R.id.textViewPing)
+        private val textviewpingHost: TextView = itemView.findViewById(R.id.textViewPingHost)
         private val textViewRedScore: TextView = itemView.findViewById(R.id.textViewRedScore)
         private val textViewServidor: TextView = itemView.findViewById(R.id.textViewServidor)
         private val textViewTipoDeRed: TextView = itemView.findViewById(R.id.textViewTipoDeRed)
@@ -46,6 +47,7 @@ class AdapterResults : ListAdapter<TestData, AdapterResults.TestDataViewHolder>(
             textViewJitter.text = "Jitter: ${testData.jitter} ms"
             textViewOperadorDeRed.text = "Operador de Red: ${testData.operadorDeRed}"
             textViewPing.text = "Ping: ${testData.ping} ms"
+            textviewpingHost.text = "Ping Host: ${testData.pingHost} ms"
             textViewRedScore.text = "Red Score: ${testData.redScore}"
             textViewServidor.text = "Servidor: ${testData.servidor}"
             textViewTipoDeRed.text = "Tipo de Red: ${testData.tipoDeRed}"
