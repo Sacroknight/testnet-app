@@ -326,8 +326,27 @@
         android:minWidth="320dp"
         android:padding="@dimen/activity_horizontal_margin"
         android:text="@string/title_start"
-        android:textColor="@color/cardview_dark_background"
+        android:textColor="@color/cardview_light_background"
         android:textSize="@dimen/button_text"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/upload_speed_measurement" />
+
+    <Button
+        android:id="@+id/cancel_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:elegantTextHeight="true"
+        android:maxWidth="640dp"
+        android:maxHeight="328dp"
+        android:minWidth="320dp"
+        android:padding="@dimen/activity_horizontal_margin"
+        android:text="@string/cancel"
+        android:textColor="@color/cardview_light_background"
+        android:textSize="@dimen/button_text"
+        android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -340,4 +359,15 @@
         android:orientation="vertical"
         app:layout_constraintGuide_begin="20dp" />
 
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/location_progress_bar"
+        android:max="100"
+        android:layout_width="0dp"
+        app:trackThickness="@dimen/progressbar_thick"
+        android:layout_height="wrap_content"
+        app:trackCornerRadius="@dimen/activity_vertical_margin"
+        app:layout_constraintBottom_toTopOf="@id/cancel_button"
+        app:layout_constraintEnd_toEndOf="@+id/frame_layout"
+        app:layout_constraintStart_toStartOf="@+id/frame_layout"
+        app:layout_constraintTop_toTopOf="@+id/frame_layout" />
 </androidx.constraintlayout.widget.ConstraintLayout>

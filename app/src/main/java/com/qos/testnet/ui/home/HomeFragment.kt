@@ -1,6 +1,9 @@
 package com.qos.testnet.ui.home
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -15,6 +18,7 @@ import com.qos.testnet.ui.home.HomeViewModel.Companion.downloadScore
 import com.qos.testnet.ui.home.HomeViewModel.Companion.instantMeasurements
 import com.qos.testnet.ui.home.HomeViewModel.Companion.jitterBonus
 import com.qos.testnet.ui.home.HomeViewModel.Companion.jitterMeasurement
+import com.qos.testnet.ui.home.HomeViewModel.Companion.locationProgress
 import com.qos.testnet.ui.home.HomeViewModel.Companion.overallRating
 import com.qos.testnet.ui.home.HomeViewModel.Companion.pingMeasurement
 import com.qos.testnet.ui.home.HomeViewModel.Companion.pingScore
@@ -25,6 +29,7 @@ import com.qos.testnet.ui.home.HomeViewModel.Companion.uploadMeasurement
 import com.qos.testnet.ui.home.HomeViewModel.Companion.uploadScore
 import com.qos.testnet.ui.home.HomeViewModel.Companion.visibilityOfDownload
 import com.qos.testnet.ui.home.HomeViewModel.Companion.visibilityOfJitter
+import com.qos.testnet.ui.home.HomeViewModel.Companion.visibilityOfLocationProgress
 import com.qos.testnet.ui.home.HomeViewModel.Companion.visibilityOfPing
 import com.qos.testnet.ui.home.HomeViewModel.Companion.visibilityOfProgress
 import com.qos.testnet.ui.home.HomeViewModel.Companion.visibilityOfScore
@@ -49,8 +54,23 @@ class HomeFragment : Fragment() {
         val root: View = binding.root
 
         val factory = HomeViewModelFactory(requireContext())
-        val homeViewModel = ViewModelProvider(this, factory).get(HomeViewModel::class.java)
+        val homeViewModel = ViewModelProvider(this, factory)[HomeViewModel::class.java]
 
+        setupInitialVisibility()
+        setupButtonListeners(homeViewModel)
+        observeViewModel()
+
+        return root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    private fun setupInitialVisibility() {
+        binding.cancelButton.visibility = View.GONE
+        binding.locationProgressBar.visibility = View.GONE
         binding.testProgressIndicator.visibility = View.GONE
         binding.measurementPing.visibility = View.GONE
         binding.measurementJitter.visibility = View.GONE
@@ -59,10 +79,19 @@ class HomeFragment : Fragment() {
         binding.signalStrength.visibility = View.GONE
         binding.signalStrengthBonus.visibility = View.GONE
         binding.score.visibility = View.GONE
+    }
 
+    private fun setupButtonListeners(homeViewModel: HomeViewModel) {
         binding.startButton.setOnClickListener {
             homeViewModel.startTasks()
         }
+
+        binding.cancelButton.setOnClickListener {
+            homeViewModel.cancelTasks()
+        }
+    }
+
+    private fun observeViewModel() {
 
         // Observe the instant measurements and update the UI accordingly
         instantMeasurements.observe(viewLifecycleOwner) { s: String? ->
@@ -72,6 +101,16 @@ class HomeFragment : Fragment() {
         // Observe the changes on the button and update the UI accordingly
         HomeViewModel.isFinished.observe(viewLifecycleOwner) { testFinished: Boolean? ->
             binding.startButton.isEnabled = testFinished!!
+            binding.cancelButton.isEnabled = !testFinished
+            if (!testFinished) {
+                binding.startButton.visibility = View.GONE
+                binding.cancelButton.visibility = View.VISIBLE
+                binding.testProgressIndicator.visibility = View.GONE
+            } else {
+                binding.startButton.visibility = View.VISIBLE
+                binding.cancelButton.visibility = View.GONE
+                binding.testProgressIndicator.visibility = View.GONE
+            }
         }
 
         // Observe the progress and update the UI accordingly
@@ -120,6 +159,10 @@ class HomeFragment : Fragment() {
             binding.uploadSpeedMeasurement.visibility = visibility ?: View.INVISIBLE
         }
 
+        visibilityOfLocationProgress.observe(viewLifecycleOwner) { visibility ->
+            binding.locationProgressBar.visibility = visibility
+        }
+
         visibilityOfScore.observe(viewLifecycleOwner) { visibility ->
             val actualVisibility = visibility ?: View.INVISIBLE
             binding.score.visibility = actualVisibility
@@ -150,13 +193,37 @@ class HomeFragment : Fragment() {
             binding.signalStrength.text = s
         }
 
-
-        return root
-
+        locationProgress.observe(viewLifecycleOwner) { progress ->
+            binding.locationProgressBar.progress = progress
+        }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
+    private fun startInternetCheck() {
+        handler?.postDelayed(object : Runnable {
+            override fun run() {
+                val isConnected = isInternetAvailable(requireContext())
+                binding.startButton.isEnabled = isConnected
+                if (!isConnected) {
+                    binding.instantMeasurements.text = "No internet access"
+                } else {
+                    binding.instantMeasurements.text = "Internet access"
+                    // Usa postDelayed para limpiar el texto después de 200 milisegundos
+                    binding.instantMeasurements.postDelayed({
+                        binding.instantMeasurements.text = ""
+                    }, 200)
+                }
+                handler?.postDelayed(this, 5000) // Repite la verificación cada 5 segundos
+            }
+        }, 0)
     }
+
+    fun isInternetAvailable(context: Context): Boolean {
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val networkCapabilities =
+            connectivityManager.getNetworkCapabilities(network) ?: return false
+        return networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
 }

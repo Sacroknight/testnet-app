@@ -2,6 +2,7 @@ package com.qos.testnet.ui.home
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -47,7 +48,6 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
     private val deviceInformation = DeviceInformation(context)
     private val locationInfo = LocationInfo(context)
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
-
     private val firestore = FirebaseFirestore.getInstance()
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val userRepository: RepositoryCRUD = RepositoryCRUD(firestore, firebaseAuth, context)
@@ -58,37 +58,62 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
     private var userId: String = ""
     private var currentLocation: String? = null
     private var score: Double = 0.0
+    private var isTestRunning = false
 
     /**
      * Start the location retrieval process
      */
     private fun startLocationRetrieval() {
         updateVisibility(
+            visibilityOfLocationProgress to View.VISIBLE,
             visibilityOfScore to View.GONE,
+            visibilityOfPing to View.GONE,
             visibilityOfJitter to View.GONE,
             visibilityOfDownload to View.GONE,
             visibilityOfUpload to View.GONE
         )
+
+        val totalTime = 10000L // 10 seconds
+        val interval = 100L // 100 ms
+        val progressIncrement = 100 / (totalTime / interval).toInt()
+
+        val timer = object : CountDownTimer(totalTime, interval) {
+            var progressValue = 0
+
+            override fun onTick(millisUntilFinished: Long) {
+                progressValue += progressIncrement
+                locationProgress.postValue(progressValue)
+            }
+
+            override fun onFinish() {
+                locationProgress.postValue(100)
+                updateVisibility(visibilityOfLocationProgress to View.GONE)
+            }
+        }
+
+        timer.start()
+
         viewModelScope.launch {
             val locationResult =
-                locationInfo.locationFlow(timeout = 10000L) // 10 segundos de tiempo de espera
+                locationInfo.locationFlow(timeout = totalTime)
                     .catch { exception ->
-                        // Log the error, no need to handle it here since the catch block below will handle all exceptions
                         Log.e("LocationFlow", "Error occurred: ${exception.message}")
                     }
-                    .firstOrNull() // Use firstOrNull to get the location if available, or null if the flow completes without a location
+                    .firstOrNull()
+
+            timer.cancel() // Cancel the timer once we have a result
 
             if (locationResult != null) {
-                // We got a location from GPS or network, handle it
                 currentLocation = "${locationResult.latitude}, ${locationResult.longitude}"
                 getBestHostAndStartTasks()
+                updateVisibility(visibilityOfLocationProgress to View.GONE)
             } else {
-                // GPS and network location failed, fallback to fetching location from API
                 try {
                     val (latitude, longitude) = withContext(ioDispatcher) {
                         locationInfo.fetchLocationFromApi(LocationInfo.API_URL)
                     }
                     currentLocation = "$latitude, $longitude"
+                    updateVisibility(visibilityOfLocationProgress to View.GONE)
                     getBestHostAndStartTasks()
                 } catch (e: Exception) {
                     Log.e("LocationFlow", "Error fetching location from API: ${e.message}")
@@ -96,9 +121,12 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
             }
         }
     }
-
     /**
      * Start ping and jitter test
+     */
+
+    /**
+     * Iniciar la prueba de ping y jitter
      */
     private fun startPingAndJitterTest() {
         updateVisibility(
@@ -106,12 +134,15 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
             visibilityOfPing to View.VISIBLE,
         )
         Thread {
+            if (!isTestRunning) return@Thread
             pingAndJitterTest.startPingAndJitterTest(object : TestCallback {
                 override fun OnTestStart() {
+                    if (!isTestRunning) return
                     pingMeasurement.postValue("")
                 }
 
                 override fun OnTestSuccess(jitter: String) {
+                    if (!isTestRunning) return
                     updateVisibility(
                         visibilityOfJitter to View.VISIBLE
                     )
@@ -122,7 +153,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                         userId = userRepository.getUserId()
                     }
                     Handler(Looper.getMainLooper()).postDelayed(
-                        { this@HomeViewModel.startDownloadSpeedTest() }, 500
+                        { if (isTestRunning) this@HomeViewModel.startDownloadSpeedTest() }, 500
                     )
                 }
 
@@ -130,11 +161,13 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                     currentBackgroundMeasurement: String,
                     currentBackgroundProgress: Int
                 ) {
+                    if (!isTestRunning) return
                     pingMeasurement.postValue(currentBackgroundMeasurement)
                     progress.postValue(currentBackgroundProgress)
                 }
 
                 override fun OnTestFailed(errorMessage: String) {
+                    if (!isTestRunning) return
                     updateVisibility(
                         visibilityOfProgress to View.GONE,
                         visibilityOfJitter to View.GONE
@@ -147,18 +180,20 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
     }
 
     /**
-     * Start download speed test
+     * Iniciar la prueba de velocidad de descarga
      */
     fun startDownloadSpeedTest() {
         updateVisibility(
             visibilityOfDownload to View.VISIBLE
         )
         Thread {
+            if (!isTestRunning) return@Thread
             try {
                 downloadSpeedTest.startSpeedTest(
                     getBetterHost.urlAddress,
                     object : TestCallback {
                         override fun OnTestStart() {
+                            if (!isTestRunning) return
                             downloadMeasurement.postValue("")
                             updateVisibility(
                                 visibilityOfDownload to View.VISIBLE
@@ -166,9 +201,11 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                         }
 
                         override fun OnTestSuccess(downloadSpeed: String) {
+                            if (!isTestRunning) return
                             downloadMeasurement.postValue("${downloadSpeedTest.finalDownloadSpeed} Mb/s")
                             Handler(Looper.getMainLooper()).postDelayed(
-                                { this@HomeViewModel.startUploadSpeedTest() }, 500
+                                { if (isTestRunning) this@HomeViewModel.startUploadSpeedTest() },
+                                500
                             )
                         }
 
@@ -176,17 +213,17 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                             currentBackgroundMeasurement: String,
                             currentBackgroundProgress: Int
                         ) {
+                            if (!isTestRunning) return
                             progress.postValue(currentBackgroundProgress)
                             downloadMeasurement.postValue(currentBackgroundMeasurement)
                         }
 
                         override fun OnTestFailed(errorMessage: String) {
+                            if (!isTestRunning) return
                             Log.e("DownloadSpeedTest", "Test failed: $errorMessage")
                             visibilityOfProgress.postValue(View.GONE)
                             downloadMeasurement.postValue("Download failed")
                         }
-
-
                     })
             } finally {
                 progress.postValue(0)
@@ -195,18 +232,21 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
     }
 
     /**
-     * Start Upload Test
+     * Iniciar la prueba de velocidad de carga
      */
     fun startUploadSpeedTest() {
         updateVisibility(visibilityOfUpload to View.VISIBLE)
         Thread {
+            if (!isTestRunning) return@Thread
             try {
                 uploadSpeedStats.runUploadSpeedTest(object : TestCallback {
                     override fun OnTestStart() {
+                        if (!isTestRunning) return
                         uploadMeasurement.postValue("")
                     }
 
                     override fun OnTestSuccess(uploadSpeed: String) {
+                        if (!isTestRunning) return
                         uploadMeasurement.postValue("${uploadSpeedStats.finalUploadRate} Mb/s")
                     }
 
@@ -214,12 +254,13 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                         currentBackgroundMeasurement: String,
                         currentBackgroundProgress: Int
                     ) {
+                        if (!isTestRunning) return
                         progress.postValue(currentBackgroundProgress)
                         uploadMeasurement.postValue(currentBackgroundMeasurement)
                     }
 
                     override fun OnTestFailed(errorMessage: String) {
-                        // Handle any errors that occur during the test
+                        if (!isTestRunning) return
                         Log.e("UploadSpeedTest", "Test failed: $errorMessage")
                         visibilityOfProgress.postValue(View.GONE)
                         visibilityOfUpload.postValue(View.GONE)
@@ -227,32 +268,35 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
                     }
                 }, getBetterHost.urlUploadAddress)
             } finally {
-                calculateOverallRating()
-                progress.postValue(0)
-                instantMeasurements.postValue("")
-                isFinished.postValue(true)
-                updateVisibility(
-                    visibilityOfScore to View.VISIBLE,
-                    visibilityOfProgress to View.GONE
-                )
-                scoreVisualizer()
-                val newTestData = TestData(
-                    dispositivo = deviceInformation.model,
-                    fecha = deviceInformation.getCurrentDateTime(),
-                    idVersionAndroid = deviceInformation.androidVersion.toInt(),
-                    intensidadDeSenal = deviceInformation.signalStrength,
-                    jitter = pingAndJitterTest.jitterMeasured,
-                    operadorDeRed = deviceInformation.carrier ?: "-1",
-                    ping = pingAndJitterTest.pingMeasured,
-                    redScore = score,
-                    servidor = getBetterHost.urlAddress,
-                    tipoDeRed = deviceInformation.getActiveNetworkType(context) ?: "-1",
-                    ubicacion = currentLocation ?: "-1, -1",
-                    userId = userId,
-                    velocidadDeCarga = downloadSpeedTest.finalDownloadSpeed,
-                    velocidadDeDescarga = uploadSpeedStats.finalUploadRate
-                )
-                userRepository.sendData(newTestData)
+                if (isTestRunning) {
+                    calculateOverallRating()
+                    progress.postValue(0)
+                    instantMeasurements.postValue("")
+                    isFinished.postValue(true)
+                    updateVisibility(
+                        visibilityOfScore to View.VISIBLE,
+                        visibilityOfProgress to View.GONE
+                    )
+                    scoreVisualizer()
+                    val newTestData = TestData(
+                        dispositivo = deviceInformation.model,
+                        fecha = deviceInformation.getCurrentDateTime(),
+                        idVersionAndroid = deviceInformation.androidVersion.toInt(),
+                        intensidadDeSenal = deviceInformation.signalStrength,
+                        jitter = pingAndJitterTest.jitterMeasured,
+                        operadorDeRed = deviceInformation.carrier ?: "-1",
+                        ping = pingAndJitterTest.pingMeasured,
+                        pingHost = pingAndJitterTest.currentHost,
+                        redScore = score,
+                        servidor = getBetterHost.urlAddress,
+                        tipoDeRed = deviceInformation.getActiveNetworkType(context) ?: "-1",
+                        ubicacion = currentLocation ?: "-1, -1",
+                        userId = userId,
+                        velocidadDeCarga = downloadSpeedTest.finalDownloadSpeed,
+                        velocidadDeDescarga = uploadSpeedStats.finalUploadRate
+                    )
+                    userRepository.sendData(newTestData)
+                }
             }
         }.start()
     }
@@ -323,6 +367,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
      * Start tasks.
      */
     fun startTasks() {
+        isTestRunning = true
         visibilityOfScore.postValue(View.GONE)
         isFinished.postValue(false)
         deviceInformation.retrieveSignalStrength(dontAskAgain, dontAskAgainDenied)
@@ -336,6 +381,28 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
             deviceInformation.carrier ?: "Carrier NULL",
             networkCallback
         )
+    }
+
+    /**
+     * Método para cancelar la prueba
+     */
+    fun cancelTasks() {
+        if (isTestRunning) {
+            updateVisibility(
+                visibilityOfProgress to View.GONE,
+                visibilityOfPing to View.VISIBLE,
+                visibilityOfJitter to View.VISIBLE,
+                visibilityOfDownload to View.VISIBLE,
+                visibilityOfUpload to View.VISIBLE,
+                visibilityOfScore to View.GONE
+            )
+
+            // Mostrar mensaje de cancelación
+            instantMeasurements.postValue("Test Cancelado")
+            isFinished.postValue(true)
+            // Marcar la prueba como no en curso
+            isTestRunning = false
+        }
     }
 
     /**
@@ -407,6 +474,25 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         }
     }
 
+    /**
+     * Método para restablecer todas las variables de medición
+     */
+    private fun resetMeasurements() {
+        pingMeasurement.postValue("")
+        jitterMeasurement.postValue("")
+        downloadMeasurement.postValue("")
+        uploadMeasurement.postValue("")
+        progress.postValue(0)
+        overallRating.postValue(0.0)
+        pingScore.postValue("")
+        jitterBonus.postValue("")
+        downloadScore.postValue("")
+        uploadScore.postValue("")
+        signalStrengthBonus.postValue("")
+        signalStrength.postValue("")
+    }
+
+
     companion object {
         @JvmStatic
         var deviceInfo: MutableLiveData<String> = MutableLiveData()
@@ -443,6 +529,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
         val visibilityOfDownload: MutableLiveData<Int> = MutableLiveData()
         val visibilityOfUpload: MutableLiveData<Int> = MutableLiveData()
         val visibilityOfScore: MutableLiveData<Int> = MutableLiveData()
+        val visibilityOfLocationProgress: MutableLiveData<Int> = MutableLiveData()
 
         val pingScore: MutableLiveData<String> = MutableLiveData()
         val jitterBonus: MutableLiveData<String> = MutableLiveData()
@@ -452,6 +539,7 @@ class HomeViewModel(homeContext: Context) : ViewModel() {
 
         @JvmField
         val isFinished: MutableLiveData<Boolean> = MutableLiveData()
+        val locationProgress = MutableLiveData<Int>()
     }
 }
 

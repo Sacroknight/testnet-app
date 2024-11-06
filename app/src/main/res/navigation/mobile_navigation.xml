@@ -23,7 +23,7 @@
         android:label="@string/title_notifications"
         tools:layout="@layout/fragment_test_results" >
         <action
-            android:id="@+id/action_navigation_notifications_to_testDetailsFragment3"
+            android:id="@+id/action_navigation_notifications_to_testDetailsFragment"
             app:destination="@id/testDetailsFragment" />
     </fragment>
     <fragment
@@ -35,7 +35,7 @@
             android:name="testData"
             app:argType="com.qos.testnet.data.local.TestData" />
         <action
-            android:id="@+id/action_testDetailsFragment_to_navigation_notifications"
+            android:id="@+id/action_testDetailsFragment_to_navigation_notifications3"
             app:destination="@id/navigation_notifications" />
     </fragment>
 
